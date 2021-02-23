@@ -1,10 +1,10 @@
 / ==UserScript==
 // @name        SFS Clicker - mysfs.net
-// @namespace   Violentmonkey Scripts
-// @match       https://www.mysfs.net/*
+// @namespace   https://violentmonkey.github.io
 // @version     1.0
-// @author      -
-// @description 2/22/2021, 11:06:26 AM
+// @description  try to take over the world!
+// @author       You
+// @match       https://www.mysfs.net/*
 // @require      http://code.jquery.com/jquery-latest.min.js
 // @grant        GM_getValue
 // @grant        GM_setValue
