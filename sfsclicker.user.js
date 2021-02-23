@@ -4,7 +4,7 @@
 // @version     1.0
 // @description  try to take over the world!
 // @author       You
-// @match       https://www.mysfs.net/*
+// @match       https://www.mysfs.net/players
 // @require      http://code.jquery.com/jquery-latest.min.js
 // @grant        GM_getValue
 // @grant        GM_setValue
