@@ -1,4 +1,4 @@
-/ ==UserScript==
+// ==UserScript==
 // @name        SFS Clicker - mysfs.net
 // @namespace   https://violentmonkey.github.io
 // @version     1.0
