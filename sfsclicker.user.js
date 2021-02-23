@@ -6,6 +6,7 @@
 // @author       You
 // @match       https://www.mysfs.net/players
 // @require      http://code.jquery.com/jquery-latest.min.js
+// @downloadURL        https://github.com/007roy/sfsclicker/raw/main/sfsclicker.user.js
 // @grant        GM_getValue
 // @grant        GM_setValue
 // @grant        GM_notification
