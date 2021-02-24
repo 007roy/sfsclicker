@@ -5,6 +5,7 @@
 // @description  try to take over the world!
 // @author       You
 // @match       https://www.mysfs.net/players
+// @match       https://www.mysfs.net/home/index/*
 // @require      http://code.jquery.com/jquery-latest.min.js
 // @downloadURL        https://github.com/007roy/sfsclicker/raw/main/sfsclicker.user.js
 // @grant        GM_getValue
@@ -13,7 +14,40 @@
 // ==/UserScript==
 
 var jQuery = window.jQuery;
-setTimeout(makePlayerList,1000);
+initUI();
+
+if(GM_getValue('MINE_DATA',false)){
+  
+  setTimeout(function(){
+      var playerListIndex = GM_getValue('PlayerListIndex',0);
+      var playerList = GM_getValue('PlayerList',[]);
+      if(playerList.length <=0) return;
+      var player = playerList[playerListIndex];
+      var playerDetails = GM_getValue('PlayerDetails', []);
+      if(playerListIndex >= 5){
+            //done
+            console.log('done mining');
+            GM_setValue('MINE_DATA', false);
+            GM_setValue('PlayerListIndex',0);
+      }
+      else{
+            
+            console.log('loading next page')
+            playerListIndex++;
+            GM_setValue('PlayerListIndex',playerListIndex);
+            var output = parsePage(player);
+            playerDetails.push(output);
+            GM_setValue('PlayerDetails', playerDetails);
+            var next = 'https://www.mysfs.net/home/index/'+playerList[playerListIndex].playerId;
+            console.log(next);
+            window.location.href = next;
+      }
+  }, 1000);
+  
+}else if(GM_getValue('BUILD_PLAYER_LIST',false)){
+  setTimeout(makePlayerList,1000);
+  GM_setValue('BUILD_PLAYER_LIST',false);
+};
 
 function makePlayerList(){
   var playerList = [];
@@ -24,18 +58,22 @@ function makePlayerList(){
       var lastOnline = item.player_connection;
       var url = 'https://www.mysfs.net/home/index/'+id;
       var daysOld = ((now/1000 - lastOnline)/1440).toFixed(1);
-      console.log(lastOnline);
-      var pls = `{'playerId':${id}, 'nickName':'${item.nick_name}', 'lastOnline': ${daysOld}}`;
+      var pls = {'playerId':id, 'nickName':item.nick_name, 'lastOnline': daysOld};
       playerList.push(pls);
     });
 
     GM_setValue('PlayerList', playerList);
+    //GM_setValue('MINE_DATA', true);
+    location.reload();
   },"json");
 
 }
 
-function parsePage(){
+function parsePage(player){
+  
   var key = player.playerId;
+  console.log("player: ", player);
+  console.log("key: ", key);
   var nickName = player.nickName;
   var lastOnline = player.lastOnline;
   var lastReset = jQuery('#last_reset_' + key).val();
@@ -47,12 +85,11 @@ function parsePage(){
   var playerType = jQuery("#player_type_" + key).val();
   var currentTime = jQuery("#current_time").val(); 
   var connectionStatus = jQuery("#connect_status_cls_" + key).val()
-  
-  GM_setValue('PlayerDetails', playerDetails.push({
+  var output = {
         'playerId': key,
         'nickName': nickName,
         'lastOnline': lastOnline,
-        'nickName': player.nick_name,
+        'nickName': nickName,
         'lastReset': lastReset,
         'endRaiseTime': endRaiseTime,
         'lastDigging': lastDigging,
@@ -62,5 +99,13 @@ function parsePage(){
         'playerType': playerType,
         'currentTime': currentTime,
         'connectionStatus': connectionStatus
-  }));
-};
+  };
+  
+  return output;
+}
+
+function initUI(){
+  jQuery('.logo').after(`<div id='sfsclicker'></div>`);
+  jQuery('#sfsclicker').append("<button id='clickerbutton'>Do Stuff</button>")
+  jQuery('#sfsclicker').append();
+}
