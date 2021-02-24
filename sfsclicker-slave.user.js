@@ -14,7 +14,7 @@
 
 var jQuery = window.jQuery;
 var windowIndex = GM_getValue('WindowIndex',0);
-//GM_setValue('WindowIndex',-1);
+GM_setValue('WindowIndex',-1);
 var playerListIndex = GM_getValue('PlayerListIndex'+windowIndex,0);
 var player = GM_getValue('PlayerList'+windowIndex,[])[playerListIndex];
 var playerDetails = GM_getValue('PlayerDetails'+windowIndex, []);
@@ -25,6 +25,8 @@ window.location.href = 'https://www.mysfs.net/home/index/'+player.player_id;
 
 function parsePage(){
       var key = player.player_id;
+      var nickName = player.nickName;
+      var lastOnline = player.lastOnline;
       var lastReset = jQuery('#last_reset_' + key).val();
       var endRaiseTime = jQuery("#end_raise_time_" + key).val();
       var lastDigging = jQuery("#last_digging_" + key).val();
@@ -34,5 +36,20 @@ function parsePage(){
       var playerType = jQuery("#player_type_" + key).val();
       var currentTime = jQuery("#current_time").val(); 
       var connectionStatus = jQuery("#connect_status_cls_" + key).val()
-      GM_setValue('PlayerDetails'+windowIndex, playerDetails.push({playerId: key, nickName: player.nick_name, lastReset: lastReset}));
+      
+      GM_setValue('PlayerDetails'+windowIndex, playerDetails.push({
+            'playerId': key,
+            'nickName': nickName,
+            'lastOnline': lastOnline,
+            'nickName': player.nick_name,
+            'lastReset': lastReset,
+            'endRaiseTime': endRaiseTime,
+            'lastDigging': lastDigging,
+            'soldTimer': soldTimer,
+            'lockTime': lockTime,
+            'playerConnection': playerConnection,
+            'playerType': playerType,
+            'currentTime': currentTime,
+            'connectionStatus': connectionStatus
+      }));
 };

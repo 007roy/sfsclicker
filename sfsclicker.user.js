@@ -25,7 +25,7 @@ function makePlayerList(){
       var url = 'https://www.mysfs.net/home/index/'+id;
       var daysOld = ((now/1000 - lastOnline)/1440).toFixed(1);
       console.log(lastOnline);
-      var pls = `<a href='${url}'>${item.nick_name} lastOnline: ${daysOld}</a>}`;
+      var pls = `{'playerId':${id}, 'nickName':'${item.nick_name}', 'lastOnline': ${daysOld}}`;
       playerList.push(pls);
     });
     
