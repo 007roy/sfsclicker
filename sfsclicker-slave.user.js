@@ -13,18 +13,29 @@
 // ==/UserScript==
 
 var jQuery = window.jQuery;
-var windowIndex = GM_getValue('WindowIndex',0);
-GM_setValue('WindowIndex',-1);
-var playerListIndex = GM_getValue('PlayerListIndex'+windowIndex,0);
-var player = GM_getValue('PlayerList'+windowIndex,[])[playerListIndex];
-var playerDetails = GM_getValue('PlayerDetails'+windowIndex, []);
+if(!GM_getValue('MINE_DATA',false)) return;
+var playerListIndex = GM_getValue('PlayerListIndex',0);
+var playerList = GM_getValue('PlayerList',[]);
+if(playerList.length <=0) return;
+var player = playerList[playerListIndex];
+var playerDetails = GM_getValue('PlayerDetails', []);
 
-setTimeout(parsePage(), 1000);
-GM_setValue('PlayerListIndex'+windowIndex, playerListIndex+1);
-window.location.href = 'https://www.mysfs.net/home/index/'+player.player_id;
+setTimeout(function(){
+      if(playerListIndex > 2){
+            //done
+            GM_setValue('MINE_DATA', false);
+            GM_setValue('PlayerListIndex',0);
+      }
+      else{
+            playerListIndex++;
+            GM_setValue('PlayerListIndex',playerListIndex);
+            parsePage();
+            window.location.href = 'https://www.mysfs.net/home/index/'+playerList[playerListIndex].playerId;
+      }
+}, 1000);
 
 function parsePage(){
-      var key = player.player_id;
+      var key = player.playerId;
       var nickName = player.nickName;
       var lastOnline = player.lastOnline;
       var lastReset = jQuery('#last_reset_' + key).val();
@@ -37,7 +48,7 @@ function parsePage(){
       var currentTime = jQuery("#current_time").val(); 
       var connectionStatus = jQuery("#connect_status_cls_" + key).val()
       
-      GM_setValue('PlayerDetails'+windowIndex, playerDetails.push({
+      GM_setValue('PlayerDetails', playerDetails.push({
             'playerId': key,
             'nickName': nickName,
             'lastOnline': lastOnline,
