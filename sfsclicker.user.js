@@ -112,3 +112,13 @@ function initUI(){
   jQuery('#sfsclicker').append(pageId);
   jQuery('#sfsclicker').append(" thing: " + (jQuery("#current_time").val() - jQuery("#sold_timer_"+pageId).val()));
 }
+function gotaGetThemAll(){
+  if(!GM_getValue('GetUmAll',false))return;
+  setTimeout(function(){
+      var playerListIndex = GM_getValue('PlayerListIndex',0);
+      var playerList = GM_getValue('PlayerList',[]);
+      if(playerList.length <=0) return;
+      var player = playerList[playerListIndex];
+  },1000);
+}
+
