@@ -14,7 +14,7 @@
 // ==/UserScript==
 
 var jQuery = window.jQuery;
-initUI();
+setTimeout(initUI,2000);
 
 if(GM_getValue('MINE_DATA',false)){
   
@@ -106,6 +106,9 @@ function parsePage(player){
 
 function initUI(){
   jQuery('.logo').after(`<div id='sfsclicker'></div>`);
+  jQuery('#sfsclicker').css({'font-size': '14px', 'color': '#fff'});
   jQuery('#sfsclicker').append("<button id='clickerbutton'>Do Stuff</button>")
-  jQuery('#sfsclicker').append();
+  var pageId = parseInt(window.location.pathname.match(/[0-9]+/g)[0]);
+  jQuery('#sfsclicker').append(pageId);
+  jQuery('#sfsclicker').append(" thing: " + (jQuery("#current_time").val() - jQuery("#sold_timer_"+pageId).val()));
 }
