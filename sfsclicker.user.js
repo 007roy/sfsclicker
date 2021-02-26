@@ -59,49 +59,51 @@ function GotaGetThemAll(){
 
   //TODO update ui
   var uiReady = setInterval(()=>{
-    if(jQuery('.buy_li_'+player.player_id)!=undefined) clearInterval(uiReady);
-  }, 100);
-  
-  if(player.player_id != GetPageId()){
-    LoadPlayerPage(player.player_id);
-  }
-  
-  if(jQuery('.auction_timer').text()=='--:--'){
-    console.log('beep');
-    if(jQuery('.buy_li_'+player.player_id).css('display')=='list-item'){
-      console.log('boop');
-          //buy
-          //jQuery('#buy_to_any_player').click();
-          console.log('buy '+player.player_id);
-          RecordAuctionTimer(player.player_id);
-    }
-  }
-  //next?
-  var nextId = playerListIndex + 1;
-  if(nextId >= playerList.length){
-    //done
-    GM_setValue('CLICKER_STATE', 0);
-    jQuery('.logo').click();
-  }
-  //next
-  GM_setValue('PlayerListIndex', nextId);
-  LoadPlayerPage(playerList[nextId].player_id);
-  
+    var thisPageId = GetPageId();
+      if(player.player_id != thisPageId){
+        Log("On wrong page " + thisPageId + " loading "+player.player_id);
+        LoadPlayerPage(player.player_id);
+      }
+      if(jQuery('.buy_li_'+player.player_id).css('display')==undefined) return;
+      if(jQuery('.auction_timer').text()=='--:--'){
+        Log("blank auction timer");
+        if(jQuery('.buy_li_'+player.player_id).css('display')=='list-item'){
+              //buy
+              //jQuery('#buy_to_any_player').click();
+              Log('buy: '+player.player_id);
+              RecordAuctionTimer(player.player_id);
+        }else{ Log('no buy');}
+      }
+      //next?
+      var nextId = playerListIndex + 1;
+      if(nextId >= playerList.length){
+        //done
+        GM_setValue('CLICKER_STATE', 0);
+        jQuery('.logo').click();
+      }
+      //next
+      GM_setValue('PlayerListIndex', nextId);
+      var nextPlayer = playerList[nextId].player_id;
+      Log("Next player "+ nextPlayer)
+      LoadPlayerPage(nextPlayer);
+  }, 1000);
 }
 
 function RecordAuctionTimer(id){
-  console.log('record buy');
+  Log('record buy '+id);
   var auctionTimers = GM_getValue('AUCTION_TIMERS',[]);
   auctionTimers.push({'id':id, 'time': jQuery.now()+300000});
   GM_setValue('AUCTION_TIMERS',auctionTimers);
 }
 
 function LoadPlayerPage(id){
-  //window.location.href ='https://www.mysfs.net/home/index/' + id;
-  console.log('https://www.mysfs.net/home/index/' + id);
-  
+  window.location.href ='https://www.mysfs.net/home/index/' + id;
 }
 
-
+function Log(value){
+  var log = GM_getValue('LOG',"");
+  log += value + "/n";
+  GM_setValue('LOG', log);
+}
 
 
