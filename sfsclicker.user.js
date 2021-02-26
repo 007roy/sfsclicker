@@ -11,20 +11,22 @@
 // @grant        GM_getValue
 // @grant        GM_setValue
 // @grant        GM_notification
+// @grant        GM_addValueChangeListener
 // ==/UserScript==
 
 var jQuery = window.jQuery;
-
-switch(GM_getValue('CLICKER_STATE', 0)){
-  case 0: //idle
-    setTimeout(initUI,2000);
-    break;
-  case 1: //buy everything
-    GotaGetThemAll();
-    break;
-  case 3: //work um
-    break;
-}
+var pageTime = jQuery.now();
+var l =0;
+  switch(GM_getValue('CLICKER_STATE', 0)){
+    case 0: //idle
+      setTimeout(initUI,2000);
+      break;
+    case 1: //buy everything
+      GotaGetThemAll();
+      break;
+    case 3: //work um
+      break;
+  }
 
 function makePlayerList(){
   jQuery.post('https://www.mysfs.net/players/get_players_listing',
@@ -51,42 +53,75 @@ function StartGetThemAll(){
   GM_setValue('CLICKER_STATE',1);
   GotaGetThemAll();
 }
+
+function LoadNextPlayer(name, oldValue, newValue){
+    Log("something here");
+    if(name == 'PlayerListIndex'){
+      var nextPlayerId = GM_getValue('PlayerList',[])[newValue].player_id;
+      Log("Next player "+ nextPlayerId);
+      //jQuery(location).attr(window.location.href ='https://www.mysfs.net/home/index/' + nextPlayerId);
+    }else{
+      Log("something else");
+    }
+}
+
 function GotaGetThemAll(){
+  GM_addValueChangeListener('PlayerListIndex',LoadNextPlayer);
   var playerListIndex = GM_getValue('PlayerListIndex',0);
   var playerList = GM_getValue('PlayerList',[]);
-  if(playerList.length <=0) makePlayerList();
-  var player = playerList[playerListIndex];
-
-  //TODO update ui
-  var uiReady = setInterval(()=>{
-    var thisPageId = GetPageId();
-      if(player.player_id != thisPageId){
-        Log("On wrong page " + thisPageId + " loading "+player.player_id);
-        LoadPlayerPage(player.player_id);
-      }
-      if(jQuery('.buy_li_'+player.player_id).css('display')==undefined) return;
-      if(jQuery('.auction_timer').text()=='--:--'){
-        Log("blank auction timer");
-        if(jQuery('.buy_li_'+player.player_id).css('display')=='list-item'){
-              //buy
-              //jQuery('#buy_to_any_player').click();
-              Log('buy: '+player.player_id);
-              RecordAuctionTimer(player.player_id);
-        }else{ Log('no buy');}
-      }
-      //next?
-      var nextId = playerListIndex + 1;
-      if(nextId >= playerList.length){
-        //done
-        GM_setValue('CLICKER_STATE', 0);
-        jQuery('.logo').click();
-      }
-      //next
-      GM_setValue('PlayerListIndex', nextId);
-      var nextPlayer = playerList[nextId].player_id;
-      Log("Next player "+ nextPlayer)
-      LoadPlayerPage(nextPlayer);
-  }, 1000);
+  if(playerList.length <=0) {makePlayerList();return;}
+  var playerId = playerList[playerListIndex].player_id;
+  var thisPageId = GetPageId();
+  
+  
+  
+  if(playerId != thisPageId){
+    Log("On wrong page " + thisPageId + " loading "+playerId);
+    //jQuery(location).attr(window.location.href ='https://www.mysfs.net/home/index/' + playerId);
+    return;
+  }else {
+    Log("ON " + thisPageId + " page for player "+playerId);
+  }
+  Log("Z");
+  const observer = new MutationObserver(()=>{
+    //Log("Stuff happening " + jQuery('.buy_li_'+thisPageId).css('display'));
+    
+    var dis = "list-item";
+    try{
+      Log("A");
+      //dis = jQuery('.buy_li_'+thisPageId).css('display');
+    }catch(err){
+      Log(err.message);
+    }
+    Log("B");
+    switch(dis){
+      case 'list-item':
+        //buy
+        //jQuery('#buy_to_any_player').click();
+        Log('buy: '+ thisPageId);
+        RecordAuctionTimer(thisPageId);
+        break;
+      case 'none':
+        Log('no buy: '+ thisPageId);
+        break;
+    }
+    // why nothing down here happens ?------
+    Log('Beep!');
+    observer.disconnect();
+    Log('Boop!')
+    //next?
+    var nextIndex = playerListIndex + 1;
+    if(nextIndex >= playerList.length){
+      //done
+      GM_setValue('CLICKER_STATE', 0);
+      //jQuery('.logo').click();
+    }
+    //next
+    GM_setValue('PlayerListIndex', nextIndex);
+    Log("doing next");
+    return;
+  });
+  observer.observe(jQuery('.buy_li_'+thisPageId).get(0),{attributes: true, attributeFilter:['style']});
 }
 
 function RecordAuctionTimer(id){
@@ -97,12 +132,13 @@ function RecordAuctionTimer(id){
 }
 
 function LoadPlayerPage(id){
-  window.location.href ='https://www.mysfs.net/home/index/' + id;
+  jQuery(location).attr(window.location.href ='https://www.mysfs.net/home/index/'  + id);
 }
 
 function Log(value){
   var log = GM_getValue('LOG',"");
-  log += value + "/n";
+  var pageId = GetPageId();
+  log += pageTime + ":" + GetPageId() + " " + value + "\n";
   GM_setValue('LOG', log);
 }
 
