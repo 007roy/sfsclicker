@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name        SFS Clicker - mysfs.net
 // @namespace   https://violentmonkey.github.io
-// @version     1.6
+// @version     1.7
 // @description  try to take over the world!
 // @author       You
 // @match       https://www.mysfs.net/players
@@ -54,12 +54,15 @@ function GetPageId(){
 function initUI(){
   jQuery('.logo').after(`<div id='sfsclicker'></div>`);
   jQuery('#sfsclicker').css({'font-size': '14px', 'color': '#fff'});
-  jQuery('#sfsclicker').append("<button id='clickerbutton'>Buy</button>");
-  jQuery('#sfsclicker').append("<button id='workbutton'>Work</button>");
+  jQuery('#sfsclicker').append("<button id='clickerbutton' class='clicker-buttons'>Buy</button>");
+  jQuery('#sfsclicker').append("<button id='workbutton' class='clicker-buttons'>Work</button>");
+  jQuery('#sfsclicker').append("<button id='flipbutton' class='clicker-buttons'>Flip</button>");
   jQuery('#sfsclicker').append("<span id='buyNum'></span>");
   jQuery('#sfsclicker').append("<span id='workNum'></span>");
   jQuery('#clickerbutton').on("click", StartGetThemAll);
   jQuery('#workbutton').on("click",StartWorkingIt);
+  jQuery('#flipbutton').on("click",StartFlipping);
+  jQuery('.clicker-buttons').css({'color':'#000'});
   
   GM_addValueChangeListener('PlayerListIndex',(valueName, oldValue, newValue)=>{
     var numToBuy = GM_getValue('PlayerList',[]).length;
@@ -77,6 +80,29 @@ function StartGetThemAll(){
 }
 function StartWorkingIt() {
   window.open('https://www.mysfs.net/home/index/0','work');
+}
+function StartFlipping(){
+  var pageId = GetPageId();
+  var observer=new MutationObserver(()=>{
+    buyToAnyPlayer();
+  });
+    observer.observe(jQuery('.buy_li_'+pageId).get(0),{
+    attributes: true,
+    attributeFilter: ['style']
+  });
+  var bidObserver=new MutationObserver(()=>{
+    if(jQuery('.bid_li_'+pageId).css('display') == 'list-item'){
+      var aucTimer=jQuery('.auction_timer').text().split(':');
+      var min = parseInt(aucTimer[0]);
+      var sec = parseInt(aucTimer[1]);
+      if(min == 0 && sec <= 30) return;
+      bidToAnyPlayer();
+    }
+  });
+  bidObserver.observe(jQuery('.bid_li_'+pageId).get(0),{
+    attributes: true,
+    attributeFilter: ['style']
+  });
 }
 
 function WorkingIt(){
@@ -99,30 +125,23 @@ function WorkingIt(){
           switch(jQuery('.battery-li_'+playerId).children('span').text()[0]){
             case "1":
               multichoice_work_on_pet('1');
-              Log('WI:Work1 '+playerId);
               break;
             case "2":
               multichoice_work_on_pet('2');
-              Log('WI:Work2 '+playerId);
               break;
             case "3":
               multichoice_work_on_pet('3');
-              Log('WI:Work3 '+playerId);
               break;
             case "4":
               multichoice_work_on_pet('4');
-              Log('WI:Work4 '+playerId);
               break;
             case "5":
               multichoice_work_on_pet('5');
-              Log('WI:Work5 '+playerId);
               break;
             case "6":
               multichoice_work_on_pet('6');
-              Log('WI:Work6 '+playerId);
               break;
           }
-          Log("!!WI:HERE!!");
           if(!jQuery('#sold_pet').hasClass('disable-element')){
                 SellPet();
           }
@@ -181,30 +200,23 @@ function GGTA(){
           switch(jQuery('.battery-li_'+playerId).children('span').text()[0]){
             case "1":
               multichoice_work_on_pet('1');
-              Log('Work1 '+playerId);
               break;
             case "2":
               multichoice_work_on_pet('2');
-              Log('Work2 '+playerId);
               break;
             case "3":
               multichoice_work_on_pet('3');
-              Log('Work3 '+playerId);
               break;
             case "4":
               multichoice_work_on_pet('4');
-              Log('Work4 '+playerId);
               break;
             case "5":
               multichoice_work_on_pet('5');
-              Log('Work5 '+playerId);
               break;
             case "6":
               multichoice_work_on_pet('6');
-              Log('Work6 '+playerId);
               break;
           }
-          Log("!!:HERE!!");
           if(!jQuery('#sold_pet').hasClass('disable-element')){
             SellPet();
           }
@@ -216,7 +228,6 @@ function GGTA(){
     var nextId = playerListIndex - 1;
     if(nextId < 0){
       //done
-      GM_setValue('CLICKER_STATE', 0);
       jQuery('.logo').click();
       return;
     }
