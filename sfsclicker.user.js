@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name        SFS Clicker - mysfs.net
 // @namespace   https://violentmonkey.github.io
-// @version     1.5
+// @version     1.6
 // @description  try to take over the world!
 // @author       You
 // @match       https://www.mysfs.net/players
@@ -33,6 +33,17 @@ function makePlayerList(){
     function(data){
       GM_setValue('PlayerList', data.msg);
       location.reload();
+    },"json");
+}
+
+function SellPet(){
+  var pageId = GetPageId();
+  jQuery.post('https://www.mysfs.net/home/sold_pet',
+    { otherPlayerId: pageId },
+    function(data){
+      Log('WI:Sold: '+ pageId);
+      buyToAnyPlayer();
+      RecordAuctionTimer(pageId);
     },"json");
 }
 
@@ -113,10 +124,7 @@ function WorkingIt(){
           }
           Log("!!WI:HERE!!");
           if(!jQuery('#sold_pet').hasClass('disable-element')){
-                jQuery('#sold_pet').click();
-                Log('WI:Sold: '+ playerId);
-                buyToAnyPlayer();
-                RecordAuctionTimer(playerId);
+                SellPet();
           }
         }
         break;
@@ -198,10 +206,7 @@ function GGTA(){
           }
           Log("!!:HERE!!");
           if(!jQuery('#sold_pet').hasClass('disable-element')){
-                jQuery('#sold_pet').click();
-                Log('Sold: '+ playerId);
-                buyToAnyPlayer();
-                RecordAuctionTimer(playerId);
+            SellPet();
           }
           
         }
@@ -245,3 +250,4 @@ function Log(value){
   log += value + "/n";
   GM_setValue('LOG', log);
 }
+
