@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name        SFS Clicker - mysfs.net
 // @namespace   https://violentmonkey.github.io
-// @version     1.7
+// @version     1.8
 // @description  try to take over the world!
 // @author       You
 // @match       https://www.mysfs.net/players
@@ -15,7 +15,7 @@
 // ==/UserScript==
 
 var jQuery = window.jQuery;
-
+var pageId = GetPageId();
 switch(window.name){
   case "buy": //buy everything
     GGTA();
@@ -37,7 +37,6 @@ function makePlayerList(){
 }
 
 function SellPet(){
-  var pageId = GetPageId();
   jQuery.post('https://www.mysfs.net/home/sold_pet',
     { otherPlayerId: pageId },
     function(data){
@@ -82,7 +81,6 @@ function StartWorkingIt() {
   window.open('https://www.mysfs.net/home/index/0','work');
 }
 function StartFlipping(){
-  var pageId = GetPageId();
   var observer=new MutationObserver(()=>{
     buyToAnyPlayer();
   });
@@ -104,12 +102,82 @@ function StartFlipping(){
     attributeFilter: ['style']
   });
 }
+function GetAuctionTimer(){
+  if(jQuery('.bid_li_'+pageId).css('display') == 'list-item'){
+    var aucTimer=jQuery('.auction_timer').text().split(':');
+    var min = parseInt(aucTimer[0]);
+    var sec = parseInt(aucTimer[1]);
+    return sec + min * 60;
+  }else return -1;
+
+}
+function GetEnergy(){
+  return parseInt(jQuery('.battery-li_'+pageId).children('span').first().text().split('%')[0]);
+}
+function WatchWorkPet(){
+  //work if can
+  //sell
+  var workObserver = MutationObserver(()=>{
+    if(jQuery('.work_pet_li_'+pageId).hasClass('disable-element')) return;
+    var energy = GetEnergy();
+    if(energy == 0){
+      SellPet();
+    }else if(energy <= 60){
+      multichoice_work_on_pet(energy.toString()[0]);
+    }else if(energy > 60){
+      multichoice_work_on_pet('6');
+    }
+  });
+
+  workObserver.observe(jQuery('.work_pet_li_'+pageId).get(0),{
+    attributes: true,
+    attributeFilter: ['style']
+  });
+}
+
+function WatchBuy(){
+  //buy if can
+  var buyObserver = MutationObserver(()=>{
+    if(jQuery('.buy_li_'+pageId).css('display')!='list-item') return;
+    buyToAnyPlayer();
+    RecordAuctionTimer(pageId);
+  });
+  buyObserver.observe(jQuery('.buy_li_'+pageId).get(0),{
+    attributes: true,
+    attributeFilter: ['style']
+  });
+}
+
+function WatchBid(){
+  var bidObserver = MutationObserver(()=>{
+    if(jQuery('.bid_li_'+pageId).css('display') != 'list-item') return;
+    NextPlayer();
+  });
+  bidObserver.observe(jQuery('.buy_li_'+pageId).get(0),{
+    attributes: true,
+    attributeFilter: ['style']
+  });
+}
+
+function NextPlayer(){
+  var playerList = GM_getValue('PlayerList',[]);
+  var playerListIndex = GM_getValue('PlayerListIndex',0);
+  var nextId = playerListIndex + 1;
+  if(nextId >= playerList.length){
+    //done
+    GM_setValue('PlayerListIndex',0);
+    jQuery('.logo').click();
+  }else{
+    GM_setValue('PlayerListIndex', nextId);
+    var nextPlayer = playerList[nextId].player_id;
+    LoadPlayerPage(nextPlayer);  
+  }
+}
 
 function WorkingIt(){
   var actionIndex = GM_getValue('ACTION_INDEX',0);
   var actionTimer = GM_getValue('AUCTION_TIMERS',[]);
   var playerId = actionTimer[actionIndex].id;
-  var pageId = GetPageId();
   
   if(playerId != pageId){
     Log("WI:Wrong page");
@@ -119,35 +187,32 @@ function WorkingIt(){
   
   var observer = new MutationObserver(()=>{
     observer.disconnect();
-    switch(jQuery('.buy_li_'+playerId).css('display')){
-      case 'none':
-        if(!jQuery('.work_pet_li_'+playerId).hasClass('disable-element')){
-          switch(jQuery('.battery-li_'+playerId).children('span').text()[0]){
-            case "1":
-              multichoice_work_on_pet('1');
-              break;
-            case "2":
-              multichoice_work_on_pet('2');
-              break;
-            case "3":
-              multichoice_work_on_pet('3');
-              break;
-            case "4":
-              multichoice_work_on_pet('4');
-              break;
-            case "5":
-              multichoice_work_on_pet('5');
-              break;
-            case "6":
-              multichoice_work_on_pet('6');
-              break;
-          }
-          if(!jQuery('#sold_pet').hasClass('disable-element')){
-                SellPet();
-          }
-        }
-        break;
+    if(!jQuery('.work_pet_li_'+playerId).hasClass('disable-element')){
+      switch(jQuery('.battery-li_'+playerId).children('span').text()[0]){
+        case "1":
+          multichoice_work_on_pet('1');
+          break;
+        case "2":
+          multichoice_work_on_pet('2');
+          break;
+        case "3":
+          multichoice_work_on_pet('3');
+          break;
+        case "4":
+          multichoice_work_on_pet('4');
+          break;
+        case "5":
+          multichoice_work_on_pet('5');
+          break;
+        case "6":
+          multichoice_work_on_pet('6');
+          break;
+      }
+      if(!jQuery('#sold_pet').hasClass('disable-element')){
+            SellPet();
+      }
     }
+   
     var nextId = actionIndex + 1;
     if(nextId >= actionTimer.length){
       jQuery('.logo').click();
@@ -165,7 +230,7 @@ function WorkingIt(){
       LoadPlayerPage(nextPlayer);
     }
   });
-   observer.observe(jQuery('.buy_li_'+pageId).get(0),{
+   observer.observe(jQuery('.work_pet_li_'+pageId).get(0),{
     attributes: true,
     attributeFilter: ['style']
   });
@@ -173,75 +238,12 @@ function WorkingIt(){
 
 function GGTA(){
   var playerList = GM_getValue('PlayerList',[]);
-  var pageId = GetPageId();
-  if(playerList.length <=0){
-    makePlayerList();
-    return;
-  }
-  
-  var observer = new MutationObserver(()=>{
-    observer.disconnect();
-    var playerListIndex = GM_getValue('PlayerListIndex',playerList.length-1);
-    var playerId = playerList[playerListIndex].player_id;
-    if(playerId != pageId){
-      Log("Wrong page");
-      LoadPlayerPage(playerId); //************
-      return;
-    }
-    switch(jQuery('.buy_li_'+playerId).css('display')){
-      case 'list-item':
-        //buy
-        //jQuery('#buy_to_any_player').click();
-        buyToAnyPlayer();
-        RecordAuctionTimer(playerId);
-        break;
-      case 'none':
-        if(!jQuery('.work_pet_li_'+playerId).hasClass('disable-element')){
-          switch(jQuery('.battery-li_'+playerId).children('span').text()[0]){
-            case "1":
-              multichoice_work_on_pet('1');
-              break;
-            case "2":
-              multichoice_work_on_pet('2');
-              break;
-            case "3":
-              multichoice_work_on_pet('3');
-              break;
-            case "4":
-              multichoice_work_on_pet('4');
-              break;
-            case "5":
-              multichoice_work_on_pet('5');
-              break;
-            case "6":
-              multichoice_work_on_pet('6');
-              break;
-          }
-          if(!jQuery('#sold_pet').hasClass('disable-element')){
-            SellPet();
-          }
-          
-        }
-        break;
-    }
-    
-    var nextId = playerListIndex - 1;
-    if(nextId < 0){
-      //done
-      jQuery('.logo').click();
-      return;
-    }
-    //next
-    
-    GM_setValue('PlayerListIndex', nextId);
-    var nextPlayer = playerList[nextId].player_id;
-    LoadPlayerPage(nextPlayer); //*****************
-  });
-  observer.observe(jQuery('.buy_li_'+pageId).get(0),{
-    attributes: true,
-    attributeFilter: ['style']
-  });
+  if(playerList.length <=0) makePlayerList();
+  WatchBuy();
+  WatchWorkPet();
+  WatchBid(); //Bid comes up we go to next page
 }
+
 
 function RecordAuctionTimer(id){
   Log('record buy '+id);
