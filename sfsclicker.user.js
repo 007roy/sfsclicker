@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name        SFS Clicker - test
 // @namespace   https://violentmonkey.github.io
-// @version     1.8t
+// @version     1.9t
 // @description  try to take over the world!
 // @author       You
 // @match       https://www.mysfs.net/players
@@ -78,13 +78,7 @@ function StartGetThemAll(){
   window.open('https://www.mysfs.net/home/index/0','buy:'+windowIndex);
 }
 function StartFlipping(){
-  var observer=new MutationObserver(()=>{
-    buyToAnyPlayer();
-  });
-    observer.observe(jQuery('.buy_li_'+pageId).get(0),{
-    attributes: true,
-    attributeFilter: ['style']
-  });
+  WatchBuy();
   var bidObserver=new MutationObserver(()=>{
     if(jQuery('.bid_li_'+pageId).css('display') == 'list-item'){
       var aucTimer=jQuery('.auction_timer').text().split(':');
@@ -95,8 +89,7 @@ function StartFlipping(){
     }
   });
   bidObserver.observe(jQuery('.bid_li_'+pageId).get(0),{
-    attributes: true,
-    attributeFilter: ['style']
+    attributes: true
   });
 }
 function GetAuctionTimer(){
@@ -142,8 +135,7 @@ function WatchBuy(){
     RecordAuctionTimer(pageId);
   });
   buyObserver.observe(jQuery('.buy_li_'+pageId).get(0),{
-    attributes: true,
-    attributeFilter: ['style']
+    attributes: true
   });
 }
 function WatchSell(){
@@ -167,18 +159,16 @@ function WatchBid(){
     NextPlayer();
   });
   bidObserver.observe(jQuery('.buy_li_'+pageId).get(0),{
-    attributes: true,
-    attributeFilter: ['style']
+    attributes: true
   });
 }
 
 function WatchPageDone(){
   var timerObserver = new MutationObserver(()=>{
-    if(jQuery('#auction_timer_'+pageId).text()='--:--'){
+    if(jQuery('#auction_timer_'+pageId).text()=='--:--'){
       if(jQuery('.work_pet_li_'+pageId).hasClass('disable-element') &&
       jQuery('.sold_pet_li_'+pageId).hasClass('disable-element') &&
-      jQuery('.buy_li_'+pageId).css('display')!='list-item'){ 
-        Log('Nothing todo '+pageId);
+      jQuery('.buy_li_'+pageId).css('display')=='none'){
         NextPlayer();
       }
     }
@@ -211,7 +201,7 @@ function GGTA(){
   WatchSell();
   WatchBid(); //Bid comes up we go to next page
   WatchPageDone();
-  setTimeout(NextPlayer,4000);
+  //setTimeout(NextPlayer,4000);
 }
 
 
