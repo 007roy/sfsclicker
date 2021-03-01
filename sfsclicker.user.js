@@ -39,27 +39,24 @@ function makePlayerList(){
       location.reload();
     },"json");
 }
-
 function SellPet(){
   jQuery.post('https://www.mysfs.net/home/sold_pet',
     { otherPlayerId: pageId },
     function(data){},"json");
 }
-
 function GetPageId(){
   return parseInt(window.location.pathname.match(/[0-9]+/g)[0]);
 }
-
 function initUI(){
   jQuery('.logo').after(`<div id='sfsclicker'></div>`);
   jQuery('#sfsclicker').css({'font-size': '14px', 'color': '#fff'});
   jQuery('#sfsclicker').append("<button id='clickerbutton' class='clicker-buttons'>Buy</button>");
-  jQuery('#sfsclicker').append("<button id='workbutton' class='clicker-buttons'>Work</button>");
+  //jQuery('#sfsclicker').append("<button id='workbutton' class='clicker-buttons'>Work</button>");
   jQuery('#sfsclicker').append("<button id='flipbutton' class='clicker-buttons'>Flip</button>");
   jQuery('#sfsclicker').append("<span id='buyNum'></span>");
   jQuery('#sfsclicker').append("<span id='workNum'></span>");
   jQuery('#clickerbutton').on("click", StartGetThemAll);
-  jQuery('#workbutton').on("click",StartWorkingIt);
+  //jQuery('#workbutton').on("click",StartWorkingIt);
   jQuery('#flipbutton').on("click",StartFlipping);
   jQuery('.clicker-buttons').css({'color':'#000'});
   
@@ -74,7 +71,6 @@ function initUI(){
     jQuery('#workNum').text(str);
   });
 }
-
 function StartGetThemAll(){
   GM_setValue('AUCTION_TIMERS',[]);
   GM_setValue('LOG','');
@@ -137,11 +133,9 @@ function WatchWorkPet(){
   });
 
   workObserver.observe(jQuery('.work_pet_li_'+pageId).get(0),{
-    attributes: true,
-    attributeFilter: ['style']
+    attributes: true
   });
 }
-
 function WatchBuy(){
   //buy if can
   var buyObserver = new MutationObserver(()=>{
@@ -154,7 +148,6 @@ function WatchBuy(){
     attributeFilter: ['style']
   });
 }
-
 function WatchBid(){
   var bidObserver = new MutationObserver(()=>{
     if(jQuery('.bid_li_'+pageId).css('display') != 'list-item') return;
@@ -165,7 +158,6 @@ function WatchBid(){
     attributeFilter: ['style']
   });
 }
-
 function NextPlayer(){
   var playerList = GM_getValue('PlayerList',[]);
   var playerListIndex = GM_getValue('PlayerListIndex',0);
@@ -180,94 +172,28 @@ function NextPlayer(){
     LoadPlayerPage(nextPlayer);  
   }
 }
-
-function WorkingIt(){
-  var actionIndex = GM_getValue('ACTION_INDEX',0);
-  var actionTimer = GM_getValue('AUCTION_TIMERS',[]);
-  var playerId = actionTimer[actionIndex].id;
-  
-  if(playerId != pageId){
-    Log("WI:Wrong page");
-    LoadPlayerPage(playerId); //************
-    return;
-  }
-  
-  var observer = new MutationObserver(()=>{
-    observer.disconnect();
-    if(!jQuery('.work_pet_li_'+playerId).hasClass('disable-element')){
-      switch(jQuery('.battery-li_'+playerId).children('span').text()[0]){
-        case "1":
-          multichoice_work_on_pet('1');
-          break;
-        case "2":
-          multichoice_work_on_pet('2');
-          break;
-        case "3":
-          multichoice_work_on_pet('3');
-          break;
-        case "4":
-          multichoice_work_on_pet('4');
-          break;
-        case "5":
-          multichoice_work_on_pet('5');
-          break;
-        case "6":
-          multichoice_work_on_pet('6');
-          break;
-      }
-      if(!jQuery('#sold_pet').hasClass('disable-element')){
-            SellPet();
-      }
-    }
-   
-    var nextId = actionIndex + 1;
-    if(nextId >= actionTimer.length){
-      jQuery('.logo').click();
-      return;
-    }
-    //next
-    GM_setValue('ACTION_INDEX', nextId);
-    var nextPlayer = actionTimer[nextId].id;
-    var t = actionTimer[nextId].time - jQuery.now();
-    if(t>0){
-      setTimeout(()=>{
-        Log("WAITING: "+t);
-        LoadPlayerPage(nextPlayer);},t);
-    }else{
-      LoadPlayerPage(nextPlayer);
-    }
-  });
-   observer.observe(jQuery('.work_pet_li_'+pageId).get(0),{
-    attributes: true,
-    attributeFilter: ['style']
-  });
-}
-
 function GGTA(){
   var playerList = GM_getValue('PlayerList',[]);
   if(playerList.length <=0) makePlayerList();
   WatchBuy();
   WatchWorkPet();
   WatchBid(); //Bid comes up we go to next page
+  setTimeout(NextPlayer,5000);
 }
-
-
 function RecordAuctionTimer(id){
   Log('Buy '+id);
   var auctionTimers = GM_getValue('AUCTION_TIMERS',[]);
   auctionTimers.push({'id':id, 'time': jQuery.now()+300000});
   GM_setValue('AUCTION_TIMERS',auctionTimers);
 }
-
 function LoadPlayerPage(id){
   setTimeout(()=>{
     window.location.href ='https://www.mysfs.net/home/index/' + id;
   },1000);
 }
-
 function Log(value){
   var log = GM_getValue('LOG',"");
-  log += value + "/n";
+  log += value + " / ";
   GM_setValue('LOG', log);
 }
 
