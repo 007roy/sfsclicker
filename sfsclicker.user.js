@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name        SFS Clicker - test
 // @namespace   https://violentmonkey.github.io
-// @version     1.9t
+// @version     2.0t
 // @description  try to take over the world!
 // @author       You
 // @match       https://www.mysfs.net/players
@@ -26,6 +26,9 @@ switch(windowName){
   case "work": //work um
     if(pageId == 779 || pageId == 729 || pageId == 509) NextPlayer();
     WorkingIt();
+    break;
+  case "Action":
+    ActionPage();
     break;
   default:
     if(pageId == 729 || pageId == 509) NextPlayer();
@@ -56,12 +59,10 @@ function initUI(){
   jQuery('.logo').after(`<div id='sfsclicker'></div>`);
   jQuery('#sfsclicker').css({'font-size': '14px', 'color': '#fff'});
   jQuery('#sfsclicker').append("<button id='clickerbutton' class='clicker-buttons'>Buy</button>");
-  jQuery('#sfsclicker').append("<button id='workbutton' class='clicker-buttons'>Work</button>");
   jQuery('#sfsclicker').append("<button id='flipbutton' class='clicker-buttons'>Flip</button>");
   jQuery('#sfsclicker').append("<span id='buyNum'></span>");
-  jQuery('#sfsclicker').append("<span id='workNum'></span>");
+  jQuery('#sfsclicker').append("<span id='petNum'></span>");
   jQuery('#clickerbutton').on("click", StartGetThemAll);
-  jQuery('#workbutton').on("click",StartWorkingIt);
   jQuery('#flipbutton').on("click",StartFlipping);
   jQuery('.clicker-buttons').css({'color':'#000'});
   
@@ -70,6 +71,20 @@ function initUI(){
     var str = " Buy: "+newValue + "\\" + numToBuy;
     jQuery('#buyNum').text(str);
   });
+ var actionList = [];
+  GM_addValueChangeListener('ActionTimer',(valueName, oldValue, newValue)=>{
+    var actionTime = jQuery.now() - newValue.time;
+    actionTime = actionTime <0 ? 0:actionTime;
+    var action = setTimeout(StartAction(newValue.id),actionTime);
+    actionList.push(action);
+    jQuery('#petNum').text('Watched: '+ actionList.length);
+  });
+}
+function RecordActionTimer(){
+  var actionTimer = GM_setValue('ActionTimer',{'id':pageId, 'time': jQuery.now()+300000});
+}
+function StartAction(id){
+  window.open('https://www.mysfs.net/home/index/'+id,'Action');
 }
 
 function StartGetThemAll(){
@@ -79,19 +94,9 @@ function StartGetThemAll(){
 }
 function StartFlipping(){
   WatchBuy();
-  var bidObserver=new MutationObserver(()=>{
-    if(jQuery('.bid_li_'+pageId).css('display') == 'list-item'){
-      var aucTimer=jQuery('.auction_timer').text().split(':');
-      var min = parseInt(aucTimer[0]);
-      var sec = parseInt(aucTimer[1]);
-      if(min == 0 && sec <= 30) return;
-      bidToAnyPlayer();
-    }
-  });
-  bidObserver.observe(jQuery('.bid_li_'+pageId).get(0),{
-    attributes: true
-  });
+  WatchBid(true);
 }
+
 function GetAuctionTimer(){
   if(jQuery('.bid_li_'+pageId).css('display') == 'list-item'){
     var aucTimer=jQuery('.auction_timer').text().split(':');
@@ -100,6 +105,12 @@ function GetAuctionTimer(){
     return sec + min * 60;
   }else return -1;
 
+}
+
+function ActionPage(){
+  WatchBuy(false);
+  WatchWorkPet();
+  WatchSell();
 }
 function GetEnergy(){
   return parseInt(jQuery('.battery-li_'+pageId).children('span').first().text().split('%')[0]);
@@ -112,7 +123,7 @@ function WatchWorkPet(){
     var energy = GetEnergy();
     if(energy == 0){
       SellPet();
-      Log('Sold Pet ' +pageId);
+      Log('Sold Pet1 ' +pageId);
     }else if(energy <= 60){
       multichoice_work_on_pet(energy.toString()[0]);
       Log('Work Pet ' +pageId);
@@ -120,6 +131,7 @@ function WatchWorkPet(){
       multichoice_work_on_pet('6');
       Log('Work Pet ' +pageId);
     }
+    location.reload();
   });
 
   workObserver.observe(jQuery('.work_pet_li_'+pageId).get(0),{
@@ -127,12 +139,12 @@ function WatchWorkPet(){
   });
 }
 
-function WatchBuy(){
+function WatchBuy(record = true){
   //buy if can
   var buyObserver = new MutationObserver(()=>{
     if(jQuery('.buy_li_'+pageId).css('display')!='list-item') return;
     buyToAnyPlayer();
-    RecordAuctionTimer(pageId);
+    if(record)RecordActionTimer();
   });
   buyObserver.observe(jQuery('.buy_li_'+pageId).get(0),{
     attributes: true
@@ -144,7 +156,7 @@ function WatchSell(){
     var energy = GetEnergy();
     if(energy == 0){
       SellPet();
-      Log('Sold Pet ' +pageId);
+      Log('Sold Pet2 ' +pageId);
       location.reload();
     };
   });
@@ -153,10 +165,15 @@ function WatchSell(){
   });
 }
 
-function WatchBid(){
+function WatchBid(flipping = false){
   var bidObserver = new MutationObserver(()=>{
     if(jQuery('.bid_li_'+pageId).css('display') != 'list-item') return;
-    NextPlayer();
+    if(flipping){
+      if(GetAuctionTimer() <= 30) return;
+      bidToAnyPlayer();
+    }else{
+      NextPlayer();
+    }
   });
   bidObserver.observe(jQuery('.buy_li_'+pageId).get(0),{
     attributes: true
@@ -169,12 +186,16 @@ function WatchPageDone(){
       if(jQuery('.work_pet_li_'+pageId).hasClass('disable-element') &&
       jQuery('.sold_pet_li_'+pageId).hasClass('disable-element') &&
       jQuery('.buy_li_'+pageId).css('display')=='none'){
+        if(jQuery('.bid_li_'+pageId).css('display') != 'list-item'){
+          RecordActionTimer();
+        }
         NextPlayer();
       }
     }
   });
   timerObserver.observe(jQuery('#auction_timer_'+pageId).get(0),{
-    characterData: true
+    characterData: true,
+    childList: true
   });
 }
 
@@ -184,8 +205,8 @@ function NextPlayer(){
   var nextId = playerListIndex + 1;
   if(nextId >= playerList.length){
     //done
-    GM_setValue('PlayerListIndex'+windowIndex,0);
-    jQuery('.logo').click();
+    //GM_setValue('PlayerListIndex'+windowIndex,0);
+    //jQuery('.logo').click();
   }else{
     GM_setValue('PlayerListIndex'+windowIndex, nextId);
     var nextPlayer = playerList[nextId].player_id;
@@ -201,16 +222,11 @@ function GGTA(){
   WatchSell();
   WatchBid(); //Bid comes up we go to next page
   WatchPageDone();
-  //setTimeout(NextPlayer,4000);
+  setTimeout(()=>{Log('Timeout '+pageId);NextPlayer();},4000);
 }
 
 
-function RecordAuctionTimer(id){
-  Log('Buy '+id);
-  //var auctionTimers = GM_getValue('AUCTION_TIMERS',[]);
- // auctionTimers.push({'id':id, 'time': jQuery.now()+300000});
-  //GM_setValue('AUCTION_TIMERS',auctionTimers);
-}
+
 
 function LoadPlayerPage(id){
   setTimeout(()=>{
@@ -220,7 +236,7 @@ function LoadPlayerPage(id){
 
 function Log(value){
   var log = GM_getValue('LOG',"");
-  log += value + "/n";
+  log += value + "/";
   GM_setValue('LOG', log);
 }
 
