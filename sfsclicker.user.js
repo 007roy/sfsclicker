@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name        SFS Clicker - mysfs.net
 // @namespace   https://violentmonkey.github.io
-// @version     1.8
+// @version     1.8t
 // @description  try to take over the world!
 // @author       You
 // @match       https://www.mysfs.net/players
@@ -16,7 +16,9 @@
 
 var jQuery = window.jQuery;
 var pageId = GetPageId();
-switch(window.name){
+var windowName = window.name.split(":")[0];
+var windowIndex = window.name.split(":")[1];
+switch(windowName){
   case "buy": //buy everything
     if(pageId == 779 || pageId == 729 || pageId == 509) NextPlayer();
     GGTA();
@@ -68,21 +70,12 @@ function initUI(){
     var str = " Buy: "+newValue + "\\" + numToBuy;
     jQuery('#buyNum').text(str);
   });
-  GM_addValueChangeListener('ACTION_INDEX',(valueName, oldValue, newValue)=>{
-    var numToWork = GM_getValue('AUCTION_TIMERS',[]).length;
-    var str = " Work: "+(newValue+1) + "\\" + numToWork;
-    jQuery('#workNum').text(str);
-  });
 }
 
 function StartGetThemAll(){
-  GM_setValue('AUCTION_TIMERS',[]);
-  GM_setValue('LOG','');
-  GM_setValue('PlayerListIndex',0);
-  window.open('https://www.mysfs.net/home/index/0','buy');
-}
-function StartWorkingIt() {
-  window.open('https://www.mysfs.net/home/index/0','work');
+  var windowIndex = GM_getValue('WindowIndex',0);
+  GM_setValue('WindowIndex', windowIndex+1);
+  window.open('https://www.mysfs.net/home/index/0','buy:'+windowIndex);
 }
 function StartFlipping(){
   var observer=new MutationObserver(()=>{
@@ -168,10 +161,6 @@ function WatchSell(){
   });
 }
 
-/*
- * <li class="sold_pet_li_533" id="sold_pet"><a href="javascript:void(0);">Sell Soul</a></li>
- * <li class="sold_pet_li_533 disable-element" id="sold_pet"><a href="javascript:void(0);">Sell Soul</a></li>
- */
 function WatchBid(){
   var bidObserver = new MutationObserver(()=>{
     if(jQuery('.bid_li_'+pageId).css('display') != 'list-item') return;
@@ -185,79 +174,17 @@ function WatchBid(){
 
 function NextPlayer(){
   var playerList = GM_getValue('PlayerList',[]);
-  var playerListIndex = GM_getValue('PlayerListIndex',0);
+  var playerListIndex = GM_getValue('PlayerListIndex'+windowIndex,0);
   var nextId = playerListIndex + 1;
   if(nextId >= playerList.length){
     //done
-    GM_setValue('PlayerListIndex',0);
+    GM_setValue('PlayerListIndex'+windowIndex,0);
     jQuery('.logo').click();
   }else{
-    GM_setValue('PlayerListIndex', nextId);
+    GM_setValue('PlayerListIndex'+windowIndex, nextId);
     var nextPlayer = playerList[nextId].player_id;
     LoadPlayerPage(nextPlayer);  
   }
-}
-
-function WorkingIt(){
-  var actionIndex = GM_getValue('ACTION_INDEX',0);
-  var actionTimer = GM_getValue('AUCTION_TIMERS',[]);
-  var playerId = actionTimer[actionIndex].id;
-  
-  if(playerId != pageId){
-    Log("WI:Wrong page");
-    LoadPlayerPage(playerId); //************
-    return;
-  }
-  
-  var observer = new MutationObserver(()=>{
-    observer.disconnect();
-    if(!jQuery('.work_pet_li_'+playerId).hasClass('disable-element')){
-      switch(jQuery('.battery-li_'+playerId).children('span').text()[0]){
-        case "1":
-          multichoice_work_on_pet('1');
-          break;
-        case "2":
-          multichoice_work_on_pet('2');
-          break;
-        case "3":
-          multichoice_work_on_pet('3');
-          break;
-        case "4":
-          multichoice_work_on_pet('4');
-          break;
-        case "5":
-          multichoice_work_on_pet('5');
-          break;
-        case "6":
-          multichoice_work_on_pet('6');
-          break;
-      }
-      if(!jQuery('#sold_pet').hasClass('disable-element')){
-            SellPet();
-      }
-    }
-   
-    var nextId = actionIndex + 1;
-    if(nextId >= actionTimer.length){
-      jQuery('.logo').click();
-      return;
-    }
-    //next
-    GM_setValue('ACTION_INDEX', nextId);
-    var nextPlayer = actionTimer[nextId].id;
-    var t = actionTimer[nextId].time - jQuery.now();
-    if(t>0){
-      setTimeout(()=>{
-        Log("WAITING: "+t);
-        LoadPlayerPage(nextPlayer);},t);
-    }else{
-      LoadPlayerPage(nextPlayer);
-    }
-  });
-   observer.observe(jQuery('.work_pet_li_'+pageId).get(0),{
-    attributes: true,
-    attributeFilter: ['style']
-  });
 }
 
 function GGTA(){
