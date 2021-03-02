@@ -54,6 +54,9 @@ function SellPet(){
 function GetPageId(){
   return parseInt(window.location.pathname.match(/[0-9]+/g)[0]);
 }
+function GetOwnerId(){
+  return parseInt(jQuery('#owner_profile_link_'+pageId).prop('href').match(/[0-9]+/g)[0]);
+}
 
 function initUI(){
   jQuery('.logo').after(`<div id='sfsclicker'></div>`);
@@ -80,12 +83,12 @@ function initUI(){
     var action = setTimeout(StartAction,actionTime,newValue.id,z); //work
     actionList.push(action);
     z++;
-    jQuery('#petNum').text('Watched: '+ actionIt + "//"+ actionList.length);
+    jQuery('#petNum').text('Watched: '+ actionIt + "\\"+ actionList.length);
   });
 }
 var actionIt = 0;
 function RecordActionTimer(t=300000){
-  var actionTimer = GM_setValue('ActionTimer',{'id':pageId, 'time': jQuery.now()+t});
+  //var actionTimer = GM_setValue('ActionTimer',{'id':pageId, 'time': jQuery.now()+t});
 }
 function StartAction(id,z){
   actionIt++;
@@ -112,9 +115,10 @@ function GetAuctionTimer(){
 }
 
 function ActionPage(){
-  WatchBuy(false);
+  WatchBuy(true); //only rebuy
   WatchWorkPet();
   WatchSell();
+  WatchPageDone();
 }
 function GetEnergy(){
   return parseInt(jQuery('.battery-li_'+pageId).children('span').first().text().split('%')[0]);
@@ -126,8 +130,9 @@ function WatchWorkPet(){
     if(jQuery('.work_pet_li_'+pageId).hasClass('disable-element')) return;
     var energy = GetEnergy();
     if(energy == 0){
-      SellPet();
+      //SellPet();
       Log('Sold Pet1 ' +pageId);
+      return;
     }else if(energy <= 60){
       multichoice_work_on_pet(energy.toString()[0]);
       Log('Work Pet ' +pageId);
@@ -145,12 +150,18 @@ function WatchWorkPet(){
   });
 }
 
-function WatchBuy(record = true){
+function WatchBuy(onlyRebuy=false){
   //buy if can
   var buyObserver = new MutationObserver(()=>{
     if(jQuery('.buy_li_'+pageId).css('display')!='list-item') return;
-    buyToAnyPlayer();
-    if(record)RecordActionTimer();
+    if(!onlyRebuy){
+      buyToAnyPlayer();
+      RecordActionTimer();
+    }else if(GetOwnerId()==1){
+      Log('Rebuy '+pageId);
+      buyToAnyPlayer();
+      RecordActionTimer();
+    }
   });
   buyObserver.observe(jQuery('.buy_li_'+pageId).get(0),{
     attributes: true
@@ -159,6 +170,7 @@ function WatchBuy(record = true){
 function WatchSell(){
   var sellObserver = new MutationObserver(()=>{
     if(jQuery('.sold_pet_li_'+pageId).hasClass('disable-element')) return;
+    if(jQuery('.freePet_'+pageId).css('display')=='list-item'){ NextPlayer();return;}
     var energy = GetEnergy();
     if(energy == 0){
       SellPet();
@@ -170,7 +182,6 @@ function WatchSell(){
     attributes: true
   });
 }
-
 function WatchBid(flipping = false){
   var bidObserver = new MutationObserver(()=>{
     if(jQuery('.bid_li_'+pageId).css('display') != 'list-item') return;
@@ -193,7 +204,7 @@ function WatchPageDone(){
       jQuery('.sold_pet_li_'+pageId).hasClass('disable-element') &&
       jQuery('.buy_li_'+pageId).css('display')=='none'){
         if(jQuery('.bid_li_'+pageId).css('display') != 'list-item'){
-          
+          RecordActionTimer();
         }
         NextPlayer();
       }
@@ -211,7 +222,7 @@ function NextPlayer(){
   var nextId = playerListIndex + 1;
   if(nextId >= playerList.length){
     //done
-    //GM_setValue('PlayerListIndex'+windowIndex,0);
+    GM_setValue('PlayerListIndex'+windowIndex,0);
     //jQuery('.logo').click();
   }else{
     GM_setValue('PlayerListIndex'+windowIndex, nextId);
@@ -228,7 +239,7 @@ function GGTA(){
   WatchSell();
   WatchBid(); //Bid comes up we go to next page
   WatchPageDone();
-  setTimeout(()=>{Log('Timeout '+pageId);NextPlayer();},4000);
+ // setTimeout(()=>{Log('Timeout '+pageId);NextPlayer();},4000);
 }
 
 
