@@ -72,21 +72,25 @@ function initUI(){
     jQuery('#buyNum').text(str);
   });
  var actionList = [];
+  var z = 0;
   GM_addValueChangeListener('ActionTimer',(valueName, oldValue, newValue)=>{
-    var actionTime = jQuery.now() - newValue.time;
+    var actionTime = newValue.time - jQuery.now();
+    
     actionTime = actionTime <0 ? 0:actionTime;
-    var action = setTimeout(StartAction(newValue.id),actionTime);
+    var action = setTimeout(StartAction,actionTime,newValue.id,z); //work
     actionList.push(action);
-    jQuery('#petNum').text('Watched: '+ actionList.length);
+    z++;
+    jQuery('#petNum').text('Watched: '+ actionIt + "//"+ actionList.length);
   });
 }
-function RecordActionTimer(){
-  var actionTimer = GM_setValue('ActionTimer',{'id':pageId, 'time': jQuery.now()+300000});
+var actionIt = 0;
+function RecordActionTimer(t=300000){
+  var actionTimer = GM_setValue('ActionTimer',{'id':pageId, 'time': jQuery.now()+t});
 }
-function StartAction(id){
-  window.open('https://www.mysfs.net/home/index/'+id,'Action');
+function StartAction(id,z){
+  actionIt++;
+  window.open('https://www.mysfs.net/home/index/'+id,'Action:0');
 }
-
 function StartGetThemAll(){
   var windowIndex = GM_getValue('WindowIndex',0);
   GM_setValue('WindowIndex', windowIndex+1);
@@ -127,9 +131,11 @@ function WatchWorkPet(){
     }else if(energy <= 60){
       multichoice_work_on_pet(energy.toString()[0]);
       Log('Work Pet ' +pageId);
+      RecordActionTimer(900000);
     }else if(energy > 60){
       multichoice_work_on_pet('6');
       Log('Work Pet ' +pageId);
+      RecordActionTimer(900000);
     }
     location.reload();
   });
@@ -187,7 +193,7 @@ function WatchPageDone(){
       jQuery('.sold_pet_li_'+pageId).hasClass('disable-element') &&
       jQuery('.buy_li_'+pageId).css('display')=='none'){
         if(jQuery('.bid_li_'+pageId).css('display') != 'list-item'){
-          RecordActionTimer();
+          
         }
         NextPlayer();
       }
