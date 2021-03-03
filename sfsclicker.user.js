@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name        SFS Clicker - test
 // @namespace   https://violentmonkey.github.io
-// @version     2.1t
+// @version     2.2t
 // @description  try to take over the world!
 // @author       You
 // @match       https://www.mysfs.net/players
@@ -192,7 +192,7 @@ function WatchBid(flipping = false){
       NextPlayer();
     }
   });
-  bidObserver.observe(jQuery('.buy_li_'+pageId).get(0),{
+  bidObserver.observe(jQuery('.bid_li_'+pageId).get(0),{
     attributes: true
   });
 }
@@ -224,6 +224,8 @@ function NextPlayer(){
     //done
     GM_setValue('PlayerListIndex'+windowIndex,0);
     //jQuery('.logo').click();
+    
+    GM_setValue('CycleTime',jQuery.now());
   }else{
     GM_setValue('PlayerListIndex'+windowIndex, nextId);
     var nextPlayer = playerList[nextId].player_id;
@@ -239,7 +241,7 @@ function GGTA(){
   WatchSell();
   WatchBid(); //Bid comes up we go to next page
   WatchPageDone();
- // setTimeout(()=>{Log('Timeout '+pageId);NextPlayer();},4000);
+ setTimeout(()=>{Log('Timeout '+pageId);NextPlayer();},10000);
 }
 
 
