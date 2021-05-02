@@ -20,18 +20,18 @@ var windowName = window.name.split(":")[0];
 var windowIndex = window.name.split(":")[1];
 switch(windowName){
   case "buy": //buy everything
-    if(pageId == 779 || pageId == 729 || pageId == 509) NextPlayer();
+    if(pageId == 779 || pageId == 729 || pageId == 509 ||pageId == 808||pageId == 624||pageId ==1) NextPlayer();
     GGTA();
     break;
   case "work": //work um
-    if(pageId == 779 || pageId == 729 || pageId == 509) NextPlayer();
+    if(pageId == 779 || pageId == 729 || pageId == 509||pageId == 808||pageId == 624||pageId ==1) NextPlayer();
     WorkingIt();
     break;
   case "Action":
     ActionPage();
     break;
   default:
-    if(pageId == 729 || pageId == 509) NextPlayer();
+    if(pageId == 729 || pageId == 509||pageId == 808||pageId == 624||pageId ==1) NextPlayer();
     setTimeout(initUI,2000);
 }
 
@@ -44,7 +44,10 @@ function makePlayerList(){
       location.reload();
     },"json");
 }
-
+function GetPlayerValue()
+{
+  return parseFloat(jQuery('#actual_value_'+pageId).text().replace(/,/g,""));
+}
 function SellPet(){
   jQuery.post('https://www.mysfs.net/home/sold_pet',
     { otherPlayerId: pageId },
@@ -100,7 +103,7 @@ function StartGetThemAll(){
   window.open('https://www.mysfs.net/home/index/0','buy:'+windowIndex);
 }
 function StartFlipping(){
-  WatchBuy();
+ // WatchBuy();
   WatchBid(true);
 }
 
@@ -135,11 +138,11 @@ function WatchWorkPet(){
       return;
     }else if(energy <= 60){
       multichoice_work_on_pet(energy.toString()[0]);
-      Log('Work Pet ' +pageId);
+      //Log('Work Pet ' +pageId);
       RecordActionTimer(900000);
     }else if(energy > 60){
       multichoice_work_on_pet('6');
-      Log('Work Pet ' +pageId);
+      //Log('Work Pet ' +pageId);
       RecordActionTimer(900000);
     }
     location.reload();
@@ -154,7 +157,13 @@ function WatchBuy(onlyRebuy=false){
   //buy if can
   var buyObserver = new MutationObserver(()=>{
     if(jQuery('.buy_li_'+pageId).css('display')!='list-item') return;
+    if(GetPlayerValue() >= 500000000){
+      Log('Too EXPENSIVE!'+pageId);
+      NextPlayer();
+      return;
+    }
     if(!onlyRebuy){
+      Log('Buy '+pageId);
       buyToAnyPlayer();
       RecordActionTimer();
     }else if(GetOwnerId()==1){
