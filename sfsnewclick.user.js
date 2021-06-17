@@ -81,31 +81,44 @@ class DiamondChaser {
 class DeadCollector {
     constructor(windowIndex){
         this.windowIndex = windowIndex;
-        this.getPlayerList(this.init());
+        //this.getPlayerList(this.init);
+      this.init();
     }
     init(){
         this.playerPage = new PlayerPage();
+      
         this.playerPage.watchBuy(()=>{
             if(GM_getValue('BUY_CHEAP',true) && this.playerPage.getPlayerValue() >= 500000000) return;
+            this.playerPage.log('buy'+this.playerPage.pageId);
             this.playerPage.buyPlayer();
         });
+      
         this.playerPage.watchWorkPet(()=>{
             this.playerPage.workPet();
+            this.playerPage.log('work'+this.playerPage.pageId);
             this.nextPlayer();
         });
+        
         this.playerPage.watchSell(()=>{
             if(jQuery('.freePet_'+this.pageId).css('display')=='list-item'){ //whats this?
                 //this.NextPlayer();
-                console.log('whats this '+this.pageId);
+                this.playerPage.log('whats this '+this.playerPage.pageId);
                 return;
             }
+            this.playerPage.log('sell'+this.playerPage.pageId);
             this.playerPage.sellPet(this.nextPlayer());
         });
-        this.playerPage.watchBid(this.nextPlayer()); //if bid button up nothing to do
+        this.playerPage.watchBid(()=>{
+            this.nextPlayer();
+            this.playerPage.log('bid'+this.playerPage.pageId);
+        }); //if bid button up nothing to do
         this.playerPage.watchAuctionTimer(()=>{
             if(jQuery('.work_pet_li_'+this.pageId).hasClass('disable-element') &&
                 jQuery('.sold_pet_li_'+this.pageId).hasClass('disable-element') &&
-                jQuery('.buy_li_'+this.pageId).css('display')=='none') this.nextPlayer(); 
+                jQuery('.buy_li_'+this.pageId).css('display')=='none'){
+              this.playerPage.log('timer'+this.playerPage.pageId);
+              this.nextPlayer(); 
+            }
         },-1);
         
         //setTimeout(()=>{console.log('DeadCollector Timeout: '+this.playerPage.pageId); this.nextPlayer();},10000);
@@ -121,7 +134,7 @@ class DeadCollector {
             {page: 1, player_type: 3, player_seach_string: ''},
             function(data){
                 GM_setValue('PlayerList', data.msg);
-                console.log('beep');//doThis();
+                doThis();
             },"json");
     }
     nextPlayer(){
@@ -168,7 +181,7 @@ class PlayerPage {
     }
     buyPlayer(){
         buyToAnyPlayer();
-        console.log('Buy '+this.pageId);
+        this.log('Buy '+this.pageId);
     }
     watchBuy(doThis){
         this.buyObserver = new MutationObserver(()=>{
@@ -196,7 +209,7 @@ class PlayerPage {
             jQuery.post('https://www.mysfs.net/home/sold_pet',
                 { otherPlayerId: this.pageId },
                 function(data){
-                    console.log('Sold Pet2 ' +this.pageId);
+                    this.log('Sold Pet2 ' +this.pageId);
                     doThis();
                 },"json"); 
         };
@@ -206,7 +219,8 @@ class PlayerPage {
             if(jQuery('.sold_pet_li_'+this.pageId).hasClass('disable-element')) return; //check if sell button up
             doThis();
         });
-        this.sellObserver.observe(jQuery('.sold_pet_li_'+this.pageId).get(0),{attributes: true});
+        var observeNode = jQuery('.sold_pet_li_'+this.pageId).get(0);
+        if( observeNode != null) this.sellObserver.observe(observeNode,{attributes: true});
     }
     bid(){  
         bidToAnyPlayer(); 
@@ -228,7 +242,7 @@ class PlayerPage {
         this.auctionTimerObserver.observe(jQuery('.auction_timer').get(0),{characterData: true,childList: true});
     }
     getPlayerValue(){
-        return parseFloat(jQuery('#actual_value_'+pageId).text().replace(/,/g,""));
+        return parseFloat(jQuery('#actual_value_'+this.pageId).text().replace(/,/g,""));
     }
     getEnergy(){
         return parseInt(jQuery('.battery-li_'+this.pageId).children('span').first().text().split('%')[0]);
@@ -239,6 +253,11 @@ class PlayerPage {
         var sec = parseInt(aucTimer[1]);
         if(isNaN(min+sec)) return -1;
         return sec + min * 60;
+    }
+    log(value){
+      var log = GM_getValue('LOG',"");
+      log += value + "/";
+      GM_setValue('LOG', log);
     }
 }
 
