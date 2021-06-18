@@ -81,7 +81,7 @@ class DiamondChaser {
 class DeadCollector {
     constructor(windowIndex){
         this.windowIndex = windowIndex;
-        //this.getPlayerList(this.init);
+        this.getPlayerList(this.init);
       this.init();
     }
     init(){
