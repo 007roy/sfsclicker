@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name        SFS New Clicker
 // @namespace   https://violentmonkey.github.io
-// @version     3.0t
+// @version     3.1t
 // @description  try to take over the world!
 // @author       You
 // @match        https://www.mysfs.net/home/index/*
@@ -14,16 +14,23 @@
 // ==/UserScript==
 
 var jQuery = window.jQuery;
-
+GM_setValue('SKIP_LIST',[733,729,509,624,734]);
+GM_setValue('MY_ID', 779);
 class SFSClicker {
     constructor(){
-        if(window.location.pathname == '/auctions') return;
+        if(window.location.pathname == '/auctions'){
+          //this.autoAuction = new AutoAuction();
+          return;
+        }
         if(window.location.pathname.match('home/index/*')!=null){
             var windowName = window.name.split(":")[0];
             var windowIndex = window.name.split(":")[1];
             switch(windowName){
                 case "flip" :
                     this.flip = new DeadCollector(windowIndex);
+                    break;
+              case "bid" :
+                    this.startBiding();
                     break;
                 default:
                     setTimeout(this.buildUI(),2000); 
@@ -35,18 +42,37 @@ class SFSClicker {
         GM_setValue("WINDOW_INDEX", idx+1);
         window.open('https://www.mysfs.net/home/index/0','flip:'+idx);
     }
+    startBiding(){
+      this.bidder = new Bidder();
+    }
     buildUI(){
         jQuery('.logo').after(`<div id='sfsclicker'></div>`);
         jQuery('#sfsclicker').css({'font-size': '14px', 'color': '#fff'});
-        jQuery('#sfsclicker').append("<button id='clickerbutton' class='clicker-buttons'>Buy</button>");
+        jQuery('#sfsclicker').append("<button id='clickerbutton' class='clicker-buttons'>Bid</button>");
         jQuery('#sfsclicker').append("<button id='deadsbutton' class='clicker-buttons'>Deads</button>");
-        //jQuery('#clickerbutton').on("click", StartGetThemAll);
+        jQuery('#clickerbutton').on("click", this.startBiding);
         jQuery('#deadsbutton').on("click",this.launchDeadCollector);
         jQuery('.clicker-buttons').css({'color':'#000'});
     }
 
 }
 
+class Bidder{
+  constructor(){
+    this.playerPage = new PlayerPage();
+    this.playerPage.watchBid(()=>{
+      this.playerPage.bid();
+    });
+    this.watchAuctionTimer(()=>{
+      this.playerPage.bidObserver.disconnet();
+      this.playerPage.auctionTimerObserver.disconnect();
+      this.playerPage.watchBuy(()=>{
+        this.playerPage.buyPlayer();
+        this.playerPage.buyObserver.disconnet();
+      });
+    },15);
+  }
+}
 /*
 class AutoAuction {
     constructor(){
@@ -73,11 +99,11 @@ class AutoAuction {
     }
 
 }
-
+*/
 class DiamondChaser {
 
 }
-*/
+
 class DeadCollector {
     constructor(windowIndex){
         this.windowIndex = windowIndex;
@@ -89,7 +115,7 @@ class DeadCollector {
         if(GM_getValue('MY_ID',1) == this.playerPage.pageId) this.nextPlayer();
         var skipList = GM_getValue('SKIP_LIST',[]);
         if(skipList.indexOf(this.playerPage.pageId)>-1) this.nextPlayer();
-       // this.playerPage.log(skipList.indexOf(this.playerPage.pageId));
+      
         this.playerPage.watchBuy(()=>{
             if(GM_getValue('BUY_CHEAP',true) && this.playerPage.getPlayerValue() >= 500000000) return;
             this.playerPage.buyPlayer();
@@ -110,9 +136,14 @@ class DeadCollector {
             this.playerPage.log('sell'+this.playerPage.pageId);
             this.playerPage.sellPet(this.nextPlayer());
         });
+      /*
         this.playerPage.watchBid(()=>{
             this.nextPlayer();
         }); //if bid button up nothing to do
+      */
+        this.bidWatcher = new WatchBid(this.nextPlayer,this.playerPage.pageId);
+        this.bidWatcher.start();
+      
         this.playerPage.watchAuctionTimer(()=>{
             if(jQuery('.work_pet_li_'+this.pageId).hasClass('disable-element') &&
                 jQuery('.sold_pet_li_'+this.pageId).hasClass('disable-element') &&
@@ -156,12 +187,19 @@ class DeadCollector {
         },500);
     }
 }
-/*
+
 class AuctionPage {
+    constructor(){
+        jQuery('.logo').after(`<div id='sfsclicker'></div>`);
+        jQuery('#sfsclicker').css({'font-size': '14px', 'color': '#fff'});
+        jQuery('#sfsclicker').append("<button id='auctionbutton' class='auction-buttons'>Auction</button>");
+        jQuery('#auctionbuttonbutton').on("click", this.watchAuction);
+        jQuery('.clicker-buttons').css({'color':'#000'});
+    }
     watchAuction(){
         this.auctionObserver = MutationObserver(()=>{
             jQuery('.auction-counter-actual-value').each((index,elem)=>{
-                //jQuery('.auction_players_listing li').children(".auction-counter-actual-value")
+                var elem = jQuery('.auction_players_listing li').children(".auction-counter-actual-value")
                 if(jQuery(elem).text().replace(/,/g,"") > 500000000)
                 {
 
@@ -174,7 +212,7 @@ class AuctionPage {
         return jQuery('.auction-counter-actual-value').text().replace(/,/g,"");
     }
 }
-*/
+
 class PlayerPage {
     constructor(){
         var path = window.location.pathname.match(/[0-9]+/g);
@@ -220,8 +258,7 @@ class PlayerPage {
             if(jQuery('.sold_pet_li_'+this.pageId).hasClass('disable-element')) return; //check if sell button up
             doThis();
         });
-        var observeNode = jQuery('.sold_pet_li_'+this.pageId).get(0);
-        if( observeNode != null) this.sellObserver.observe(observeNode,{attributes: true});
+        this.sellObserver.observe(jQuery('.buy-right').get(0),{childList: true});
     }
     bid(){  
         bidToAnyPlayer(); 
@@ -236,13 +273,17 @@ class PlayerPage {
     }
     watchAuctionTimer(dothis,time){
         this.auctionTimerObserver = new MutationObserver(()=>{
-            if(this.getAuctionTimer()<=time){
+            var aucTimer=jQuery('.auction_timer').text().split(':');
+            var min = parseInt(aucTimer[0]);
+            var sec = parseInt(aucTimer[1]);
+            if(isNaN(min+sec)) return -1;
+            return sec + min * 60;
+            if(aucTimer<=time){
                 dothis();
                 //this.auctionTimerObserver.disconnect();
             }
         });
-      setTimeout(
-        this.auctionTimerObserver.observe(jQuery('.auction_timer').get(0),{characterData: true,childList: true}),500);
+        this.auctionTimerObserver.observe(jQuery('.auction_timer').get(0),{characterData: true,childList: true});
     }
     getPlayerValue(){
         return parseFloat(jQuery('#actual_value_'+this.pageId).text().replace(/,/g,""));
@@ -250,13 +291,7 @@ class PlayerPage {
     getEnergy(){
         return parseInt(jQuery('.battery-li_'+this.pageId).children('span').first().text().split('%')[0]);
     }
-    getAuctionTimer(){
-        var aucTimer=jQuery('.auction_timer').text().split(':');
-        var min = parseInt(aucTimer[0]);
-        var sec = parseInt(aucTimer[1]);
-        if(isNaN(min+sec)) return -1;
-        return sec + min * 60;
-    }
+
     log(value){
       var log = GM_getValue('LOG',"");
       log += value + "/";
@@ -264,4 +299,20 @@ class PlayerPage {
     }
 }
 
+class WatchBid extends MutationObserver{
+    constructor(callback, pageId){
+        this.pageId = pageId;
+        super(()=>{
+            if(jQuery('.bid_li_'+this.pageId).css('display') != 'list-item') return; //check if bidbutton up
+            callback();
+        });
+    }
+    start(){
+        this.observe(jQuery('.bid_li_'+this.pageId).get(0),{attributes: true});
+    }
+    stop(){
+        this.observe.disconnet();
+    }
+}
 var clicker = new SFSClicker();
+
