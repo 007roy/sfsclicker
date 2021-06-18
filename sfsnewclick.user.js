@@ -81,15 +81,17 @@ class DiamondChaser {
 class DeadCollector {
     constructor(windowIndex){
         this.windowIndex = windowIndex;
-        this.getPlayerList(this.init);
-      this.init();
+        this.getPlayerList();
+        this.init();
     }
     init(){
         this.playerPage = new PlayerPage();
-      
+        if(GM_getValue('MY_ID',1) == this.playerPage.pageId) this.nextPlayer();
+        var skipList = GM_getValue('SKIP_LIST',[]);
+        if(skipList.indexOf(this.playerPage.pageId)>-1) this.nextPlayer();
+       // this.playerPage.log(skipList.indexOf(this.playerPage.pageId));
         this.playerPage.watchBuy(()=>{
             if(GM_getValue('BUY_CHEAP',true) && this.playerPage.getPlayerValue() >= 500000000) return;
-            this.playerPage.log('buy'+this.playerPage.pageId);
             this.playerPage.buyPlayer();
         });
       
@@ -110,31 +112,30 @@ class DeadCollector {
         });
         this.playerPage.watchBid(()=>{
             this.nextPlayer();
-            this.playerPage.log('bid'+this.playerPage.pageId);
         }); //if bid button up nothing to do
         this.playerPage.watchAuctionTimer(()=>{
             if(jQuery('.work_pet_li_'+this.pageId).hasClass('disable-element') &&
                 jQuery('.sold_pet_li_'+this.pageId).hasClass('disable-element') &&
                 jQuery('.buy_li_'+this.pageId).css('display')=='none'){
-              this.playerPage.log('timer'+this.playerPage.pageId);
+              this.playerPage.log('timer'+this.pageId);
               this.nextPlayer(); 
             }
         },-1);
         
-        //setTimeout(()=>{console.log('DeadCollector Timeout: '+this.playerPage.pageId); this.nextPlayer();},10000);
+        setTimeout(()=>{this.playerPage.log('DeadCollector Timeout: '+this.playerPage.pageId); this.nextPlayer();},10000);
     }
     
     getPlayerList(doThis){
         var players = GM_getValue('PlayerList',[]);
         if(players.length>0){
-          doThis();
+          //doThis();
           return;
         }
         jQuery.post('https://www.mysfs.net/players/get_players_listing',
             {page: 1, player_type: 3, player_seach_string: ''},
             function(data){
                 GM_setValue('PlayerList', data.msg);
-                doThis();
+                //doThis();
             },"json");
     }
     nextPlayer(){
@@ -181,7 +182,7 @@ class PlayerPage {
     }
     buyPlayer(){
         buyToAnyPlayer();
-        this.log('Buy '+this.pageId);
+       // this.log('Buy '+this.pageId);
     }
     watchBuy(doThis){
         this.buyObserver = new MutationObserver(()=>{
@@ -224,6 +225,7 @@ class PlayerPage {
     }
     bid(){  
         bidToAnyPlayer(); 
+        this.playerPage.log('bid'+this.playerPage.pageId);
     }
     watchBid(doThis){
         this.bidObserver = new MutationObserver(()=>{
@@ -236,10 +238,11 @@ class PlayerPage {
         this.auctionTimerObserver = new MutationObserver(()=>{
             if(this.getAuctionTimer()<=time){
                 dothis();
-                this.auctionTimerObserver.disconnect();
+                //this.auctionTimerObserver.disconnect();
             }
         });
-        this.auctionTimerObserver.observe(jQuery('.auction_timer').get(0),{characterData: true,childList: true});
+      setTimeout(
+        this.auctionTimerObserver.observe(jQuery('.auction_timer').get(0),{characterData: true,childList: true}),500);
     }
     getPlayerValue(){
         return parseFloat(jQuery('#actual_value_'+this.pageId).text().replace(/,/g,""));
