@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name        SFS New Clicker
 // @namespace   https://violentmonkey.github.io
-// @version     3.1t
+// @version     3.2t
 // @description  try to take over the world!
 // @author       You
 // @match        https://www.mysfs.net/home/index/*
