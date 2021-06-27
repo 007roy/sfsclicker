@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name        SFS New Clicker
 // @namespace   https://violentmonkey.github.io
-// @version     3.2t
+// @version     3.3t
 // @description  try to take over the world!
 // @author       You
 // @match        https://www.mysfs.net/home/index/*
@@ -127,7 +127,7 @@ class DiamondChaser {
       if(jQuery('#diamond_image_'+this.playerPage.pageId).css('display') == 'inline'){
           console.log('watching Buy');
           this.playerPage.watchBuy(()=>{
-              console.log('buying');
+               if(GM_getValue('BUY_CHEAP',true) && this.playerPage.getPlayerValue() >= 500000000) return;
               this.playerPage.buyPlayer();
           });
           this.playerPage.watchDiamond(()=>{
@@ -161,7 +161,10 @@ class DeadCollector {
         //console.log(this.playerPage.pageId+":"+skipList.indexOf(this.playerPage.pageId));
       
         this.playerPage.watchBuy(()=>{
-            if(GM_getValue('BUY_CHEAP',true) && this.playerPage.getPlayerValue() >= 500000000) return;
+            if(GM_getValue('BUY_CHEAP',true) && this.playerPage.getPlayerValue() >= 500000000){
+              DeadCollector.nextPlayer();
+              return;
+            }
           this.playerPage.buyPlayer();
         });
       
@@ -275,7 +278,7 @@ class AuctionPage {
                           this.running = true;
                         }
                    
-                      }
+                      }else console.log('not next'+bidPage);
                       
                     }
                   }
@@ -360,7 +363,6 @@ class PlayerPage {
     }
     watchDiamond(noDiamond){
       this.diamondObserver = new MutationObserver(()=>{
-        this.log('dddd');
        if(jQuery('#diamond_image_'+this.pageId).css('display') != 'inline'){
          noDiamond();
        }
