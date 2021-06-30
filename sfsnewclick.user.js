@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name        SFS New Clicker
 // @namespace   https://violentmonkey.github.io
-// @version     3.3t
+// @version     3.4t
 // @description  try to take over the world!
 // @author       You
 // @match        https://www.mysfs.net/home/index/*
@@ -192,14 +192,11 @@ class DeadCollector {
         this.bidWatcher.start();
       */
         this.playerPage.watchAuctionTimer(()=>{
-          if(jQuery('.work_pet_li_'+this.playerPage.pageId).hasClass('disable-element')){
-              if(jQuery('.sold_pet_li_'+this.playerPage.pageId).hasClass('disable-element')){
-                if(jQuery('.buy_li_'+this.playerPage.pageId).css('display')=='none'){
-                  //this.playerPage.log('pagedone '+this.playerPage.pageId);
-                  DeadCollector.nextPlayer();
-                }
-              }
-            }
+          if(!jQuery('.work_pet_li_'+this.playerPage.pageId).hasClass('disable-element')) return;
+          if(!jQuery('.sold_pet_li_'+this.playerPage.pageId).hasClass('disable-element')) return;
+          if(!jQuery('.buy_li_'+this.playerPage.pageId).css('display')=='none') return;
+          //this.playerPage.log('pagedone '+this.playerPage.pageId);
+          DeadCollector.nextPlayer();
         },-1);
         
        // setTimeout(()=>{this.playerPage.log('DeadCollector Timeout: '+this.playerPage.pageId); this.nextPlayer();},10000);
@@ -312,6 +309,7 @@ class PlayerPage {
         if(energy == 0) return;
         if(energy <= 60) multichoice_work_on_pet(energy.toString()[0]);
         if(energy > 60) multichoice_work_on_pet('6');
+      location.reload();
     }
     watchWorkPet(doThis){
         this.workObserver = new MutationObserver(()=>{
@@ -329,6 +327,7 @@ class PlayerPage {
                 function(data){          
                     doThis();
                 },"json"); 
+          location.reload();
         };
     }
     watchSell(doThis){
