@@ -123,7 +123,7 @@ class AutoAuction {
     }
     newDoPlayerPage(){
             this.playerPage = new PlayerPage();
-        getPlayerList(()=>{
+        getAuctionPlayerList(()=>{
             this.playerPage.log(this.auctionplayers);
         });
     }
