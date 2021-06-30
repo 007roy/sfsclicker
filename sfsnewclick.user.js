@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name        SFS New Clicker
 // @namespace   https://violentmonkey.github.io
-// @version     3.4t
+// @version     3.4.1t
 // @description  try to take over the world!
 // @author       You
 // @match        https://www.mysfs.net/home/index/*
@@ -38,6 +38,10 @@ class SFSClicker {
               case "chase":
                   this.chaser = new DiamondChaser();
                   break;
+                case "auction":
+                    this.autoAuction = new AutoAuction();
+                    this.autoAuction.newDoPlayerPage();
+                    break;
                 default:
                     setTimeout(this.buildUI(),2000); 
             }            
@@ -54,6 +58,9 @@ class SFSClicker {
     chaseDiamond(){
       window.open('https://www.mysfs.net/home/index/0','chase:');
     }
+    autoAuction(){
+        window.open('https://www.mysfs.net/home/index/0','auction:')
+    }
     setReset(){
       GM_setValue('RESET',jQuery('#resetcheckbox').prop('checked'));
     }
@@ -64,6 +71,8 @@ class SFSClicker {
         jQuery('#sfsclicker').append("<input type='checkbox' id='resetcheckbox' class='clicker-buttons'><label for='resetcheckbox'>Reset</label>");
         jQuery('#sfsclicker').append("<button id='deadsbutton' class='clicker-buttons'>Deads</button>");
         jQuery('#sfsclicker').append("<button id='diamondbutton' class='clicker-buttons'>Chaser</button>");
+        jQuery('#sfsclicker').append("<button id='auctionbutton' class='clicker-buttons'>Auto Auction</button>");
+        jQuery('#auctionbutton').on("click", this.autoAuction);
         jQuery('#clickerbutton').on("click", this.startBiding);
         jQuery('#deadsbutton').on("click",this.launchDeadCollector);
         jQuery('#diamondbutton').on("click",this.chaseDiamond);
@@ -112,7 +121,20 @@ class AutoAuction {
                     },2000); //dont change till buy has a chance
         });
     }
-
+    newDoPlayerPage(){
+            this.playerPage = new PlayerPage();
+        getPlayerList(()=>{
+            this.playerPage.log(this.auctionplayers);
+        });
+    }
+    getAuctionPlayerList(callBack){
+        jQuery.post('https://www.mysfs.net/players/get_auction_players_listing',
+            {page: 1, visiblePages: 1, totalCount: 48},
+            function(data){
+                GM_setValue('PlayerList', this.auctionPlayers = data);
+                callBack();
+            },"json");
+    }
 }
 
 class DiamondChaser {
