@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name        SFS New Clicker
 // @namespace   https://violentmonkey.github.io
-// @version     3.4.2t
+// @version     3.4.3t
 // @description  try to take over the world!
 // @author       You
 // @match        https://www.mysfs.net/home/index/*
@@ -99,6 +99,7 @@ class Bidder{
 
 class AutoAuction {
     constructor(){
+      this.bidder = new Bidder();
     }
     doPlayerPage(){
       this.bidder = new Bidder(()=>{
@@ -117,32 +118,39 @@ class AutoAuction {
         });
     }
     newDoPlayerPage(){
-        this.playerPage = new PlayerPage();
+      
+        //this.playerPage = new PlayerPage();
         this.playerCounter = {};
-        this.getAuctionPlayerList();
+        AutoAuction.getAuctionPlayerList({});
       
     }
   
-    getAuctionPlayerList(){
+    static getAuctionPlayerList(playerCounter){
         jQuery.post('https://www.mysfs.net/auctions/get_auction_players_listing',
-            {page: 1, visiblePages: 1, totalCount: 48},
+            {page: 1, visiblePages: 21, totalCount: 48},
             function(data){
-              data.msg.each((index,elem)=>{
+              data.msg.forEach((elem)=>{
                   if(elem.buy_value>500000000){
-                    if(this.playerCounter[elem.player_id]==null) this.playerCounter[elem.player_id]=0;
-                    else this.playerCounter[elem.player_id]++;
-                    if(this.playerCounter[elem.player_id]>5 && elem.player_id != this.playerPage.pageId){
+                    if(playerCounter[elem.player_id]==null) playerCounter[elem.player_id]=0;
+                    else playerCounter[elem.player_id]++;
+                    if(playerCounter[elem.player_id]>5 && elem.player_id != PlayerPage.getPlayerId()){
+                      //console.log(elem.player_id + " : "+PlayerPage.pageId);
                       //do auction & reset counter
-                      this.bidder = new Bidder();
-                      this.playerCounter[elem.player_id]=0;
-                      this.playerPage.log("Auction Bid "+this.playerPage.pageId);
+                      //var bidder = new Bidder();
+                      playerCounter[elem.player_id]=0;
+                      window.location.href ='https://www.mysfs.net/home/index/' + elem.player_id;
+                      console.log("Auction Bid "+elem.player_id);
                     }
                   }
                 });
-              setTimeout(()=>{this.getAuctionPlayerList();},1000);
+              setTimeout(()=>{
+                console.log("Checking Auction Data...")
+                AutoAuction.getAuctionPlayerList(playerCounter);
+              },1000);
           },"json");
       
     }
+
 }
 
 class DiamondChaser {
@@ -410,6 +418,10 @@ class PlayerPage {
       log += value + "/";
       GM_setValue('LOG', log);
     }
+    static getPlayerId(){
+    var path = window.location.pathname.match(/[0-9]+/g);
+    return parseInt(path[0]);
+  }
 }
 
 class WatchBid extends MutationObserver{
