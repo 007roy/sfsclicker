@@ -19,11 +19,6 @@ GM_setValue('SKIP_LIST',[733,729,509,624,734]);
 GM_setValue('MY_ID', 779);
 class SFSClicker {
     constructor(){
-        if(window.location.pathname == '/auctions'){
-            this.autoAuction = new AutoAuction();
-            this.autoAuction.doAuctionPage();
-          return;
-        }
         if(window.location.pathname.match('home/index/*')!=null){
             var windowName = window.name.split(":")[0];
             var windowIndex = window.name.split(":")[1];
@@ -122,18 +117,31 @@ class AutoAuction {
         });
     }
     newDoPlayerPage(){
-            this.playerPage = new PlayerPage();
-        getAuctionPlayerList(()=>{
-            this.playerPage.log(this.auctionplayers);
-        });
+        this.playerPage = new PlayerPage();
+        this.playerCounter = {};
+        this.getAuctionPlayerList();
+      
     }
-    getAuctionPlayerList(callBack){
-        jQuery.post('https://www.mysfs.net/players/get_auction_players_listing',
+  
+    getAuctionPlayerList(){
+        jQuery.post('https://www.mysfs.net/auctions/get_auction_players_listing',
             {page: 1, visiblePages: 1, totalCount: 48},
             function(data){
-                GM_setValue('PlayerList', this.auctionPlayers = data);
-                callBack();
-            },"json");
+              data.msg.each((index,elem)=>{
+                  if(elem.buy_value>500000000){
+                    if(this.playerCounter[elem.player_id]==null) this.playerCounter[elem.player_id]=0;
+                    else this.playerCounter[elem.player_id]++;
+                    if(this.playerCounter[elem.player_id]>5 && elem.player_id != this.playerPage.pageId){
+                      //do auction & reset counter
+                      this.bidder = new Bidder();
+                      this.playerCounter[elem.player_id]=0;
+                      this.playerPage.log("Auction Bid "+this.playerPage.pageId);
+                    }
+                  }
+                });
+              setTimeout(()=>{this.getAuctionPlayerList();},1000);
+          },"json");
+      
     }
 }
 
@@ -166,8 +174,8 @@ class DiamondChaser {
 class DeadCollector {
     constructor(windowIndex){
         jQuery('.logo').after(`<div id='sfsclicker'></div>`);
-    jQuery('#sfsclicker').css({'font-size': '30px', 'color': '#fff'});
-    jQuery('#sfsclicker').append("DEAD COLLECTOR");
+        jQuery('#sfsclicker').css({'font-size': '30px', 'color': '#fff'});
+        jQuery('#sfsclicker').append("DEAD COLLECTOR");
         this.windowIndex = windowIndex;
         this.getPlayerList();
         this.init();
