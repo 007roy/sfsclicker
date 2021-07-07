@@ -100,6 +100,9 @@ class Bidder{
 class AutoAuction {
     constructor(){
       this.bidder = new Bidder();
+      jQuery('.logo').after(`<div id='sfsclicker'></div>`);
+        jQuery('#sfsclicker').css({'font-size': '30px', 'color': '#fff'});
+        jQuery('#sfsclicker').append("AUTO AUCTION");
     }
     doPlayerPage(){
       this.bidder = new Bidder(()=>{
@@ -133,11 +136,12 @@ class AutoAuction {
                   if(elem.buy_value>500000000){
                     if(playerCounter[elem.player_id]==null) playerCounter[elem.player_id]=0;
                     else playerCounter[elem.player_id]++;
-                    if(playerCounter[elem.player_id]>5 && elem.player_id != PlayerPage.getPlayerId()){
+                    if(playerCounter[elem.player_id]>5 && elem.player_id != PlayerPage.getPlayerId() && elem.player_id != GM_getValue('LAST_AUCTION',-1)){
                       //console.log(elem.player_id + " : "+PlayerPage.pageId);
                       //do auction & reset counter
                       //var bidder = new Bidder();
                       playerCounter[elem.player_id]=0;
+                      GM_setValue('LAST_AUCTION', PlayerPage.getPlayerId());
                       window.location.href ='https://www.mysfs.net/home/index/' + elem.player_id;
                       console.log("Auction Bid "+elem.player_id);
                     }
@@ -237,8 +241,8 @@ class DeadCollector {
           DeadCollector.nextPlayer();
         },-1);
         
-       // setTimeout(()=>{this.playerPage.log('DeadCollector Timeout: '+this.playerPage.pageId); this.nextPlayer();},10000);
-      setTimeout(()=>{this.playerPage.log('timeout '+this.playerPage.pageId);},10000);
+       setTimeout(()=>{this.playerPage.log('DeadCollector Timeout: '+this.playerPage.pageId); DeadCollector.nextPlayer();},10000);
+      //setTimeout(()=>{this.playerPage.log('timeout '+this.playerPage.pageId);},10000);
     }
     
     getPlayerList(doThis){
@@ -273,57 +277,6 @@ class DeadCollector {
     }
     static getWindowIndex(){
         return window.name.split(":")[1];
-    }
-}
-
-class AuctionPage {
-    constructor(){
-        jQuery('.logo').after(`<div id='sfsclicker'></div>`);
-        jQuery('#sfsclicker').css({'font-size': '14px', 'color': '#fff'});
-        jQuery('#sfsclicker').append("<button id='auctionbutton' class='auction-buttons'>Auto Auction</button>");
-        jQuery('#auctionbuttonbutton').on("click", this.watchAuction);
-        jQuery('.auction-buttons').css({'color':'#000'});
-        this.running = false;
-    }
-    watchAuction(){
-      // jQuery('.auction_players_listing li').each((index,elem)=>{console.log(jQuery(elem).children(".auction-counter-actual-value")[0]);})
-        console.log('start watching');
-        var counter = {};
-        this.auctionObserver = new MutationObserver(()=>{
-            jQuery('.auction_players_listing li').each((index,elem)=>{
-                var val = jQuery(elem).children(".wall-pic-name").children('.auction-counter').children('.auction-counter-actual-value').text()
-                if(val!=null){
-                  var actualValue = val.replace(/,/g,"");
-                  if(actualValue >  500000000){
-                    var bidPage = parseInt(jQuery(elem).children('a').prop('href').match(/[0-9]+/g));
-                    if(counter[bidPage]==null) counter[bidPage]=0;
-                    else counter[bidPage]++;
-                    //console.log('index:'+bidPage+" val:"+counter[bidPage]);
-                    if(counter[bidPage]>5){
-                      var nextAuction = GM_getValue('NEXT_AUCTION',0);
-                      var oldAuction = GM_getValue('OLD_AUCTION',0);
-                      if(nextAuction != bidPage && oldAuction != bidPage){
-                          GM_setValue('OLD_AUCTION', nextAuction);
-                          GM_setValue('NEXT_AUCTION',bidPage);
-                          console.log('bid page: ' + bidPage);
-                        
-                        if(!this.running){
-                          //open bidding window
-                          window.open('https://www.mysfs.net/home/index/'+bidPage,'bid:');
-                          this.running = true;
-                        }
-                   
-                      }else console.log('not next'+bidPage);
-                      
-                    }
-                  }
-                }
-            });
-        });
-        this.auctionObserver.observe(jQuery('.auction_players_listing').get(0),{characterData: true,childList: true,attributes: true});
-    }
-    getAuctionValue(){
-        return jQuery('.auction-counter-actual-value').text().replace(/,/g,"");
     }
 }
 
@@ -440,4 +393,6 @@ class WatchBid extends MutationObserver{
     }
 }
 var clicker = new SFSClicker();
+
+
 
