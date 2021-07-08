@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name        SFS New Clicker
 // @namespace   https://violentmonkey.github.io
-// @version     3.4.4t
+// @version     3.4.5t
 // @description  try to take over the world!
 // @author       You
 // @match        https://www.mysfs.net/home/index/*
@@ -25,10 +25,6 @@ class SFSClicker {
             switch(windowName){
                 case "flip" :
                     this.flip = new DeadCollector(windowIndex);
-                    break;
-              case "bid" :
-                    this.autoBid = new AutoAuction();
-                    this.autoBid.doPlayerPage();
                     break;
               case "chase":
                   this.chaser = new DiamondChaser();
@@ -104,22 +100,6 @@ class AutoAuction {
         jQuery('#sfsclicker').css({'font-size': '30px', 'color': '#fff'});
         jQuery('#sfsclicker').append("AUTO AUCTION");
     }
-    doPlayerPage(){
-      this.bidder = new Bidder(()=>{
-          AutoAuction.nextAuction();
-        });
-    }
-    doAuctionPage(){
-        this.auctionPage = new AuctionPage();
-        setTimeout(()=>{this.auctionPage.watchAuction();},2000);
-    }
-    static nextAuction(){
-        GM_addValueChangeListener('NEXT_AUCTION',(valueName, oldValue, newValue)=>{
-                  setTimeout(()=>{
-                      window.location.href ='https://www.mysfs.net/home/index/' + newValue;
-                    },2000); //dont change till buy has a chance
-        });
-    }
     newDoPlayerPage(){
       
         //this.playerPage = new PlayerPage();
@@ -127,7 +107,6 @@ class AutoAuction {
         AutoAuction.getAuctionPlayerList({});
       
     }
-  
     static getAuctionPlayerList(playerCounter){
         jQuery.post('https://www.mysfs.net/auctions/get_auction_players_listing',
             {page: 1, visiblePages: 21, totalCount: 48},
@@ -152,9 +131,7 @@ class AutoAuction {
                 AutoAuction.getAuctionPlayerList(playerCounter);
               },1000);
           },"json");
-      
     }
-
 }
 
 class DiamondChaser {
@@ -165,7 +142,6 @@ class DiamondChaser {
     jQuery('#sfsclicker').append("DIAMOND CHASER");
     console.log('chasing diamond');
     this.playerPage = new PlayerPage();
-  //  setTimeout(()=>{
       if(jQuery('#diamond_image_'+this.playerPage.pageId).css('display') == 'inline'){
           console.log('watching Buy');
           this.playerPage.watchBuy(()=>{
@@ -178,8 +154,6 @@ class DiamondChaser {
       }else{
         jQuery('a[title="Follow the diamond"]')[0].click();
       }
-   // },5000);
-    
   }
 }
 
