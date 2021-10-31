@@ -15,7 +15,7 @@
 // ==/UserScript==
 
 var jQuery = window.jQuery;
-GM_setValue('SKIP_LIST',[733,729,509,624,734,1,815,812,668]);
+GM_setValue('SKIP_LIST',[733,729,509,624,734,1,815,812,90,668]);
 GM_setValue('MY_ID', 779);
 class SFSClicker {
     constructor(){
